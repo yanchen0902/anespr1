@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>麻醉諮詢助手 - 您的手術安心夥伴</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="info-sidebar">
+            <h3>相關資訊</h3>
+            <div class="info-links">
+                <a href="https://epaper.ntuh.gov.tw/health/201612/project_1.html" target="_blank" class="info-button">
+                    <span class="emoji">💊</span> 自控式止痛
+                </a>
+                <a href="https://www.hch.gov.tw/?aid=626&pid=60&page_name=detail&iid=508" target="_blank" class="info-button">
+                    <span class="emoji">📊</span> 肌張力監測
+                </a>
+                <a href="https://heho.com.tw/archives/325974" target="_blank" class="info-button">
+                    <span class="emoji">🧠</span> 麻醉深度監測
+                </a>
+                <a href="https://www.careonline.com.tw/2021/11/enhanced-recovery-after-surgery.html" target="_blank" class="info-button">
+                    <span class="emoji">🌡️</span> 手術中保溫
+                </a>
+                <a href="https://www.hch.gov.tw/?aid=503&pid=0&page_name=detail&iid=70" target="_blank" class="info-button">
+                    <span class="emoji">🤢</span> 預防噁心嘔吐
+                </a>
+            </div>
+        </div>
+        <div class="chat-container">
+            <header>
+                <h1>麻醉諮詢助手</h1>
+                <p class="subtitle">您的手術安心夥伴，讓我們一起打造安全舒適的手術體驗</p>
+            </header>
+            <div id="chat-messages">
+                <div class="message bot-message">
+                    您好！我是您的麻醉諮詢助手。
+                    為了提供您最適合的建議，請讓我先了解一些基本資訊。
+                    我們會謹慎保護您的個人資料，請放心告訴我。
+                </div>
+            </div>
+            <div class="input-area">
+                <div id="sex-buttons" style="display: none;" class="button-group">
+                    <button onclick="selectSex('男')" class="option-button">
+                        <span class="emoji">👨</span> 男
+                    </button>
+                    <button onclick="selectSex('女')" class="option-button">
+                        <span class="emoji">👩</span> 女
+                    </button>
+                </div>
+                
+                <div id="cfs-buttons" style="display: none;" class="button-group">
+                    <button onclick="selectCFS('是')" class="option-button">
+                        <span class="emoji">✅</span> 是
+                    </button>
+                    <button onclick="selectCFS('否')" class="option-button">
+                        <span class="emoji">❌</span> 否
+                    </button>
+                </div>
+                <div id="worry-buttons" style="display: none;" class="button-group worry-group">
+                    <button onclick="selectWorry('我比較怕痛')" class="option-button worry-button">
+                        <span class="emoji">😣</span> 怕痛
+                    </button>
+                    <button onclick="selectWorry('我容易暈車')" class="option-button worry-button">
+                        <span class="emoji">🤢</span> 容易暈車
+                    </button>
+                    <button onclick="selectWorry('我比較怕冷')" class="option-button worry-button">
+                        <span class="emoji">🥶</span> 怕冷
+                    </button>
+                    <button onclick="selectWorry('我怕睡不著')" class="option-button worry-button">
+                        <span class="emoji">😴</span> 怕睡不著
+                    </button>
+                    <button onclick="selectWorry('我比較虛弱')" class="option-button worry-button">
+                        <span class="emoji">🤒</span> 比較虛弱
+                    </button>
+                </div>
+                <div id="question-buttons" style="display: none;" class="button-group question-group">
+                    <button onclick="selectQuestion('這個手術需要什麼類型的麻醉？')" class="option-button question-button">
+                        <span class="emoji">💉</span> 麻醉類型
+                    </button>
+                    <button onclick="selectQuestion('麻醉前需要做什麼準備？')" class="option-button question-button">
+                        <span class="emoji">📝</span> 術前準備
+                    </button>
+                    <button onclick="selectQuestion('麻醉有什麼風險？')" class="option-button question-button">
+                        <span class="emoji">⚠️</span> 麻醉風險
+                    </button>
+                    <button onclick="selectQuestion('如何減輕我擔心的問題？')" class="option-button question-button">
+                        <span class="emoji">🤔</span> 減輕擔憂
+                    </button>
+                    <button onclick="selectQuestion('根據我的身體狀況，有什麼特別需要注意的事項？')" class="option-button question-button">
+                        <span class="emoji">👥</span> 個人建議
+                    </button>
+                </div>
+                <div class="text-input-area">
+                    <input type="text" id="user-input" placeholder="請在此輸入您的回答...">
+                    <button onclick="sendMessage()">送出</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="{{ url_for('static', filename='js/chat.js') }}"></script>
+</body>
+</html>

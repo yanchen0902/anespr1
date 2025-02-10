@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>自費項目確認</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/style.css') }}">
+    <meta charset="UTF-8">
+</head>
+<body>
+    <div class="container">
+        <div class="form-container">
+            <h2>自費項目確認表</h2>
+            <p class="patient-info">
+                病人姓名：{{ patient_info.name }}<br>
+                預定手術：{{ patient_info.operation }}
+            </p>
+            
+            <form id="selfPayForm" action="/submit_self_pay" method="POST">
+                <input type="hidden" name="user_id" value="{{ user_id }}">
+                
+                <div class="self-pay-items">
+                    <div class="item-card">
+                        <div class="item-header">
+                            <input type="checkbox" id="depth_monitor" name="items" value="depth_monitor" 
+                                   data-price="1711" onchange="updateTotal()">
+                            <label for="depth_monitor">麻醉深度監測</label>
+                            <span class="price">NT$ 1711</span>
+                        </div>
+                        <p class="item-description">
+                            即時監測麻醉深度，降低麻醉中知覺風險，適合：
+                            - 年齡>50歲
+                            - 失眠患者
+                            - 擔心麻醉不夠深的患者
+                        </p>
+                    </div>
+
+                    <div class="item-card">
+                        <div class="item-header">
+                            <input type="checkbox" id="muscle_monitor" name="items" value="muscle_monitor" 
+                                   data-price="6500" onchange="updateTotal()">
+                            <label for="muscle_monitor">最適肌張力手術輔助處置</label>
+                            <span class="price">NT$ 6,500</span>
+                        </div>
+                        <p class="item-description">
+                            監測肌肉放鬆程度，減少術後肌肉痠痛，適合：
+                            - CFS評分>4的患者
+                            - 年長者
+                            - 長時間手術
+                        </p>
+                    </div>
+
+                    <div class="item-card">
+                        <div class="item-header">
+                            <input type="checkbox" id="pca" name="items" value="pca" 
+                                   data-price="6500" onchange="updateTotal()">
+                            <label for="pca">自控式止痛</label>
+                            <span class="price">NT$ 6,500</span>
+                        </div>
+                        <p class="item-description">
+                            讓您自行控制止痛藥物的使用，適合：
+                            - 擔心術後疼痛的患者
+                            - 預期術後疼痛程度較高的手術
+                        </p>
+                    </div>
+
+                    <div class="item-card">
+                        <div class="item-header">
+                            <input type="checkbox" id="warming" name="items" value="warming" 
+                                   data-price="980" onchange="updateTotal()">
+                            <label for="warming">溫毯</label>
+                            <span class="price">NT$ 980</span>
+                        </div>
+                        <p class="item-description">
+                            手術全程保持體溫，提供舒適的手術體驗，適合：
+                            - 怕冷的患者
+                            - 長時間手術
+                            - 所有需要全身麻醉的患者
+                        </p>
+                    </div>
+
+                    <div class="item-card">
+                        <div class="item-header">
+                            <input type="checkbox" id="anti_nausea" name="items" value="anti_nausea" 
+                                   data-price="99" onchange="updateTotal()">
+                            <label for="anti_nausea">止吐藥</label>
+                            <span class="price">NT$ 99</span>
+                        </div>
+                        <p class="item-description">
+                            預防術後噁心嘔吐，適合：
+                            - 容易暈車的患者
+                            - 有術後噁心嘔吐病史的患者
+                        </p>
+                    </div>
+                </div>
+
+                <div class="total-section">
+                    <div class="total-amount">
+                        總計：NT$ <span id="total">0</span>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="submit-button">確認選擇</button>
+                    <button type="button" class="back-button" onclick="window.location.href='/'">返回諮詢</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function updateTotal() {
+            let total = 0;
+            const prices = {
+                'depth_monitor': 1711,
+                'muscle_monitor': 6500,
+                'pca': 6500,
+                'warming': 980,
+                'anti_nausea': 99
+            };
+            
+            const checkboxes = document.querySelectorAll('input[type="checkbox"]:checked');
+            checkboxes.forEach(checkbox => {
+                const itemPrice = prices[checkbox.value] || 0;
+                total += itemPrice;
+            });
+            document.getElementById('total').textContent = total.toLocaleString();
+        }
+
+        // 根據病人資訊自動勾選建議項目
+        window.onload = function() {
+            const patientInfo = {{ patient_info|tojson|safe }};
+            
+            // 年齡>50歲，建議麻醉深度監測
+            if (patientInfo.age > 50) {
+                document.getElementById('depth_monitor').checked = true;
+            }
+            
+            // CFS>4，建議肌張力監測
+            if (patientInfo.cfs && patientInfo.cfs.includes('>4')) {
+                document.getElementById('muscle_monitor').checked = true;
+            }
+            
+            // 根據擔心項目建議
+            if (patientInfo.worry) {
+                const worry = patientInfo.worry.toLowerCase();
+                if (worry.includes('痛')) {
+                    document.getElementById('pca').checked = true;
+                }
+                if (worry.includes('冷')) {
+                    document.getElementById('warming').checked = true;
+                }
+                if (worry.includes('暈')) {
+                    document.getElementById('anti_nausea').checked = true;
+                }
+            }
+            
+            updateTotal();
+        };
+    </script>
+</body>
+</html>
