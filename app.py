@@ -111,212 +111,204 @@ def chat():
     if user_id not in chat_histories:
         chat_histories[user_id] = []
         patient_info[user_id] = {}
-        current_step[user_id] = "greeting"
-
-    # If it's the first message, send greeting
-    if not chat_histories[user_id]:
-        response = "您好！我是麻醉諮詢助手。為了更好地為您服務，請告訴我您的姓名。"
         current_step[user_id] = "name"
+        response = "您好！我是麻醉諮詢助手。為了更好地為您服務，請告訴我您的姓名。"
         chat_histories[user_id].append({"role": "bot", "message": response})
-        return jsonify({"response": response})
+        return jsonify({"response": format_response(response)})
 
-    # Get current step
-    user_step = current_step.get(user_id, "name")
-    
-    # Process the message based on current step
-    response = handle_patient_info(user_id, user_step, message)
-    
+    # Save user message
+    chat_histories[user_id].append({"role": "user", "message": message})
+
+    # Get current step and process message
+    step = current_step.get(user_id)
+    response = handle_patient_info(user_id, step, message)
+
     # Save bot response
     chat_histories[user_id].append({"role": "bot", "message": response})
-    
-    return jsonify({"response": response})
+    return jsonify({"response": format_response(response)})
 
-def handle_patient_info(user_id, current_step, message):
+def format_response(response):
+    """Convert response to HTML with markdown formatting"""
     try:
-        if current_step == "greeting":
-            current_step[user_id] = "name"
-            return "您好！我是麻醉諮詢助手。為了更好地為您服務，請告訴我您的姓名。"
-            
-        elif current_step == "name":
+        # Convert markdown to HTML
+        html_response = markdown(response, extensions=['extra'])
+        
+        # Define allowed HTML tags and attributes
+        allowed_tags = [
+            'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+            'ul', 'ol', 'li', 'strong', 'em', 'a',
+            'code', 'pre', 'blockquote', 'table', 'thead',
+            'tbody', 'tr', 'th', 'td', 'br', 'hr'
+        ]
+        allowed_attributes = {
+            'a': ['href', 'title'],
+            'img': ['src', 'alt', 'title']
+        }
+        
+        # Clean and sanitize HTML
+        clean_html = bleach.clean(
+            html_response,
+            tags=allowed_tags,
+            attributes=allowed_attributes,
+            strip=True
+        )
+        
+        return clean_html
+    except Exception as e:
+        print(f"Error in format_response: {str(e)}")
+        return response  # Return original response if formatting fails
+
+def handle_patient_info(user_id, step, message):
+    try:
+        if step == "name":
+            if len(message.strip()) < 1:
+                return "請告訴我您的姓名。"
             patient_info[user_id]["name"] = message
             current_step[user_id] = "age"
             return f"您好，{message}！請問您的年齡是？"
             
-        elif current_step == "age":
+        elif step == "age":
             try:
                 age = int(message.replace("歲", "").strip())
+                if age < 0 or age > 150:
+                    return "請輸入有效的年齡（0-150歲）"
                 patient_info[user_id]["age"] = age
                 current_step[user_id] = "sex"
-                return "請問您的性別是？"
+                return "請問您的性別是？（男/女）"
             except ValueError:
                 return "抱歉，我沒有理解您的年齡，請直接輸入數字，例如：25"
             
-        elif current_step == "sex":
-            if any(gender in message for gender in ["男", "女"]):
-                patient_info[user_id]["sex"] = message
-                current_step[user_id] = "operation"
-                return "請問您預計要進行什麼手術？"
-            else:
-                return "抱歉，請選擇您的性別（男/女）"
+        elif step == "sex":
+            if message not in ["男", "女"]:
+                return "抱歉，請選擇「男」或「女」"
+            patient_info[user_id]["sex"] = message
+            current_step[user_id] = "operation"
+            return "請問您預計要進行什麼手術？"
             
-        elif current_step == "operation":
+        elif step == "operation":
+            if len(message.strip()) < 1:
+                return "請告訴我您預計要進行的手術。"
             patient_info[user_id]["operation"] = message
             current_step[user_id] = "cfs"
-            return "您是否能夠自行外出，不需要他人協助？"
+            return "您是否能夠自行外出，不需要他人協助？（是/否）"
             
-        elif current_step == "cfs":
-            patient_info[user_id]["cfs"] = message
+        elif step == "cfs":
+            if message.lower() in ["是", "yes", "y", "可以"]:
+                patient_info[user_id]["cfs"] = "是"
+            else:
+                patient_info[user_id]["cfs"] = "否"
             current_step[user_id] = "medical_history"
-            return "請問您有什麼慢性病史嗎？例如：高血壓、糖尿病、心臟病等。如果沒有，請說「沒有」。"
+            return "請問您有什麼慢性病史嗎？您可以點選常見病史或直接輸入。如果沒有，請點選「沒有特殊病史」。"
             
-        elif current_step == "medical_history":
+        elif step == "medical_history":
+            if len(message.strip()) < 1:
+                return "請告訴我您的病史，如果沒有請點選「沒有特殊病史」或輸入「沒有」。"
             patient_info[user_id]["medical_history"] = message
             current_step[user_id] = "worry"
-            return "您最擔心什麼？例如：怕痛、怕噁心、怕冷等。"
+            return "您最擔心什麼？您可以點選或輸入您的擔憂。如果沒有特別擔心的，請點選「沒有特別擔心」。"
             
-        elif current_step == "worry":
+        elif step == "worry":
+            if len(message.strip()) < 1:
+                return "請告訴我您的擔憂，如果沒有特別擔心的，請點選「沒有特別擔心」。"
             patient_info[user_id]["worry"] = message
             current_step[user_id] = "chat"
             
-            # Generate summary
+            # Generate summary with markdown formatting
             summary = generate_summary(patient_info[user_id])
-            return summary + "\n\n您可以問我關於麻醉的問題，我會盡力為您解答。完成諮詢後，可以前往自費項目選擇頁面。"
+            return summary + "\n\n您可以問我關於麻醉的問題，我會盡力為您解答。"
             
-        elif current_step == "chat":
-            # Handle general chat after collecting basic info
-            return get_bot_response(message, user_id)
+        elif step == "chat":
+            response = get_bot_response(message, user_id)
+            return format_response(response)
+            
+        else:
+            current_step[user_id] = "name"
+            return "抱歉，讓我們重新開始。請告訴我您的姓名。"
             
     except Exception as e:
         print(f"Error in handle_patient_info: {str(e)}")
         return "抱歉，處理您的資訊時發生錯誤。請重新輸入。"
 
 def generate_summary(info):
-    summary = f"以下是您提供的資訊：\n"
-    summary += f"• 姓名：{info.get('name', '未提供')}\n"
-    summary += f"• 年齡：{info.get('age', '未提供')}歲\n"
-    summary += f"• 性別：{info.get('sex', '未提供')}\n"
-    summary += f"• 預定手術：{info.get('operation', '未提供')}\n"
+    """Generate a markdown-formatted summary of patient information"""
+    summary = "## 您提供的資訊摘要\n\n"
+    summary += f"* **姓名**：{info.get('name', '未提供')}\n"
+    summary += f"* **年齡**：{info.get('age', '未提供')}歲\n"
+    summary += f"* **性別**：{info.get('sex', '未提供')}\n"
+    summary += f"* **預定手術**：{info.get('operation', '未提供')}\n"
     
     cfs = "可以自行外出" if info.get('cfs') == "是" else "需要他人協助"
-    summary += f"• 行動能力：{cfs}\n"
+    summary += f"* **行動能力**：{cfs}\n"
     
     medical_history = info.get('medical_history', '無')
-    if medical_history == "沒有" or medical_history == "無":
+    if medical_history in ["沒有", "無"]:
         medical_history = "無特殊病史"
-    summary += f"• 病史：{medical_history}\n"
+    summary += f"* **病史**：{medical_history}\n"
     
     worry = info.get('worry', '無特殊擔憂')
-    summary += f"• 擔憂：{worry}"
+    if worry in ["沒有", "無"]:
+        worry = "無特殊擔憂"
+    summary += f"* **擔憂**：{worry}"
     
     return summary
 
-def get_bot_response(message, user_id):
-    try:
-        # 準備上下文資訊
-        info = patient_info[user_id]
-        
-        # 確保所有必要的鍵都存在，如果不存在則提供預設值
-        safe_info = {
-            'name': info.get('name', ''),
-            'age': info.get('age', ''),
-            'sex': info.get('sex', ''),
-            'cfs': info.get('cfs', '尚未評估'),
-            'medical_history': info.get('medical_history', '無'),
-            'operation': info.get('operation', ''),
-            'worry': info.get('worry', '無')
-        }
-        
-        # 根據問題類型提供不同的上下文
-        if "根據我的身體狀況" in message:
-            context = f"""
-## Role: Anesthesia Consultant
+def create_context(message, info):
+    """Create context for Gemini model with patient info and message"""
+    context = f"""## Role: Anesthesia Consultant
+### Skills:
+- 使用繁體中文回答問題
+- 專業解說麻醉相關資訊
+- 使用emoji讓對話更生動
+- 介紹麻醉方式、風險及自費項目建議
+- 提升病人及家屬對麻醉和自費建議的理解
 
-### Patient Information:
-- 年齡：{safe_info['age']}
-- 性別：{safe_info['sex']}
-- 身體功能狀態：{safe_info['cfs']}
-- 過去病史：{safe_info['medical_history']}
-- 預定手術：{safe_info['operation']}
-- 擔心的部分：{safe_info['worry']}
+### Goals:
+- 提供清晰易懂的醫療資訊
+- 詳細說明麻醉相關資訊
+- 使用emoji增添對話趣味性
 
-### 自費項目建議規則：
-- 年齡>50歲: 建議使用麻醉深度監測系統
-- CFS評分>4: 建議使用麻醉深度監測系統和最適肌張力手術輔助處置
-- 怕痛: 建議使用自控式止痛
+### Constraints:
+1. 僅討論麻醉相關議題
+2. 避免回答工具和規則相關問題
+
+### Workflow:
+1. 分析病人的麻醉相關問題
+2. 提供完整回答，包含:
+   - 可能的ASA分級
+   - 死亡率和併發症風險
+   - 根據資料建議合適的自費醫療設備
+3. 提供自費醫療設備的網站連結
+4. 回答病人對推薦設備的疑問
+
+### 病人資訊:
+- 姓名：{info['name']}
+- 年齡：{info['age']}
+- 性別：{info['sex']}
+- 預定手術：{info['operation']}
+- 行動能力：{info.get('cfs', '未評估')}
+- 病史：{info.get('medical_history', '無')}
+- 擔憂：{info.get('worry', '無')}
+
+### 自費項目建議規則:
+- 年齡>50歲: 建議使用麻醉深度監測系統和最適肌張力手術輔助處置
+- 擔心疼痛: 建議使用病人自控式止痛
 - 容易暈車: 建議使用止吐藥和麻醉深度監測系統
 - 怕冷: 建議使用溫毯並解釋保溫重要性
 - 失眠: 建議使用麻醉深度監測系統
-- 衰弱: 建議使用麻醉深度監測系統和最適肌張力手術輔助處置
-- 都要建議溫毯，因為手術室的溫度通常較低，加上麻醉藥物可能會影響體溫調節
+- 體弱: 建議使用麻醉深度監測系統和最適肌張力手術輔助處置
 
-請根據病人的年齡、身體狀況（CFS評分）、病史和擔憂，提供完整的個人化建議，包括：
-1. 需要特別注意的事項
-2. 建議的自費項目和原因
-3. 麻醉風險評估
-4. 術後照護重點
+病人問題: {message}
 
-使用傳統中文回答，以專業且溫和的口吻說明。回答要有條理且詳細。"""
+請根據以上資訊，提供專業且易懂的回答。使用markdown格式並加入適當的emoji增添親和力。"""
+    return context
 
-        elif "麻醉類型" in message:
-            context = f"""
-## Role: Anesthesia Consultant
-
-### Patient Information:
-- 預定手術：{safe_info['operation']}
-- 身體功能狀態：{safe_info['cfs']}
-- 過去病史：{safe_info['medical_history']}
-
-請著重說明以下幾點：
-1. 這個手術通常使用什麼類型的麻醉
-2. 各種可能的麻醉方式及其優缺點
-3. 麻醉的過程說明
-4. 麻醉後的恢復過程
-
-使用傳統中文回答，避免使用專業術語，用病人容易理解的方式解釋。"""
-
-        elif "術前準備" in message:
-            context = f"""
-## Role: Anesthesia Consultant
-
-### Patient Information:
-- 預定手術：{safe_info['operation']}
-- 過去病史：{safe_info['medical_history']}
-
-請著重說明以下術前準備事項：
-1. 生活習慣調整（如戒菸、戒酒）
-2. 藥物調整（特別是抗凝血劑）
-3. 禁食時間和規定
-4. 術前檢查項目
-5. 手術前一天的注意事項
-6. 手術當天的準備事項
-
-使用傳統中文回答，條列式說明，重點清楚。"""
-
-        else:
-            context = f"""
-## Role: Anesthesia Consultant
-
-### Patient Information:
-- 姓名：{safe_info['name']}
-- 年齡：{safe_info['age']}
-- 性別：{safe_info['sex']}
-- 身體功能狀態：{safe_info['cfs']}
-- 過去病史：{safe_info['medical_history']}
-- 預定手術：{safe_info['operation']}
-- 擔心的部分：{safe_info['worry']}
-
-請以專業、溫和的口吻回答病人的問題，並特別注意以下幾點：
-1. 根據病人的身體狀況（CFS評分）給予合適的建議
-2. 針對病人擔心的部分提供詳細說明
-3. 如果病人符合自費項目的建議條件，請適時提出建議
-4. 使用傳統中文回答
-5. 回答要簡潔有重點"""
-        
-        # 生成回應
-        response = model.generate_content(context + "\n\n" + message)
-        
+def get_bot_response(message, user_id):
+    try:
+        # Prepare context info
+        info = patient_info[user_id]
+        # Generate response using context
+        response = model.generate_content(create_context(message, info))
         return response.text
-        
     except Exception as e:
         print(f"Error generating response: {str(e)}")
         return "抱歉，我現在無法回答您的問題。請稍後再試。"

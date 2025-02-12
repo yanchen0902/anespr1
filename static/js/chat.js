@@ -1,51 +1,79 @@
-// 生成唯一的用戶ID
+// Generate a unique user ID
 const userId = 'user-' + Date.now();
 
-function sendMessage(message = null) {
-    if (!message.trim()) return;
+// Add current_step variable to track chat state
+let current_step = 'initial';
+
+function sendMessage(message) {
+    if (!message && message !== '') return;
     
+    // Clear input if it exists
     const userInput = document.getElementById('user-input');
-    userInput.value = '';
+    if (userInput) {
+        userInput.value = '';
+    }
     
-    addMessageToChat('user', message);
+    // Don't add empty initial message to chat
+    if (message) {
+        addMessageToChat('user', message);
+    }
 
     fetch('/chat', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ message: message, user_id: userId })
+        body: JSON.stringify({ 
+            message: message,
+            user_id: userId 
+        })
     })
     .then(response => response.json())
     .then(data => {
+        // Add bot message to chat
         addMessageToChat('bot', data.response);
         
-        // Show sex buttons only when specifically asking for sex/gender
-        if (data.response.toLowerCase().includes('性別')) {
+        // Hide all buttons first
+        hideAllButtons();
+        
+        const response = data.response.toLowerCase();
+
+        // If this is an API response (after initial flow), only show question buttons
+        if (current_step === 'chat' || response.includes('api response')) {
+            document.getElementById('question-buttons').style.display = 'flex';
+            document.getElementById('user-input').placeholder = '輸入您的問題...';
+            return;
+        }
+        
+        // Below are only for initial flow
+        // Show sex buttons when asking about gender
+        if (response.includes('性別是') || (response.includes('男') && response.includes('女'))) {
             document.getElementById('sex-buttons').style.display = 'flex';
-        } else {
-            document.getElementById('sex-buttons').style.display = 'none';
         }
 
         // Show CFS buttons when asking about independence
-        if (data.response.includes('您是否能夠自行外出')) {
+        if (response.includes('自行外出') && response.includes('是/否')) {
             document.getElementById('cfs-buttons').style.display = 'flex';
-        } else {
-            document.getElementById('cfs-buttons').style.display = 'none';
+        }
+
+        // Show medical history buttons when asking about medical history
+        if ((response.includes('慢性病史') || response.includes('病史')) && 
+            !response.includes('資訊摘要')) {
+            document.getElementById('medical-history-buttons').style.display = 'flex';
+            document.getElementById('user-input').placeholder = '或直接輸入您的病史...';
         }
 
         // Show worry buttons when asking about concerns
-        if (data.response.includes('您最擔心什麼') || 
-            data.response.includes('有什麼擔心的地方')) {
+        if (response.includes('最擔心什麼') && !response.includes('資訊摘要')) {
             document.getElementById('worry-buttons').style.display = 'flex';
-        } else {
-            document.getElementById('worry-buttons').style.display = 'none';
+            document.getElementById('user-input').placeholder = '或直接輸入您的擔憂...';
         }
 
-        // Show question buttons when appropriate
-        if (data.response.includes('您可以問我關於麻醉的問題') && 
-            !data.response.includes('可以點擊下方綠色按鈕')) {
+        // Show question buttons after summary
+        if (response.includes('關於麻醉的問題') && response.includes('資訊摘要')) {
             document.getElementById('question-buttons').style.display = 'flex';
+            document.getElementById('user-input').placeholder = '輸入您的問題...';
+            current_step = 'chat';
         }
     })
     .catch(error => {
@@ -54,24 +82,27 @@ function sendMessage(message = null) {
     });
 }
 
-function handleChatCompletion(response) {
-    if (response.includes("諮詢結束")) {
-        // Add a small delay before transition
-        setTimeout(() => {
-            const message = document.createElement('div');
-            message.className = 'message bot-message';
-            message.innerHTML = '感謝您的諮詢！現在為您導向自費項目選擇頁面...';
-            document.getElementById('chat-messages').appendChild(message);
-            
-            // Scroll to the bottom
-            message.scrollIntoView({ behavior: 'smooth' });
-            
-            // Redirect after showing message
-            setTimeout(() => {
-                window.location.href = '/self_pay';
-            }, 2000);
-        }, 1000);
-    }
+function hideAllButtons() {
+    // Hide all button groups
+    document.getElementById('sex-buttons').style.display = 'none';
+    document.getElementById('cfs-buttons').style.display = 'none';
+    document.getElementById('medical-history-buttons').style.display = 'none';
+    document.getElementById('worry-buttons').style.display = 'none';
+    document.getElementById('question-buttons').style.display = 'none';
+    // Reset input placeholder
+    document.getElementById('user-input').placeholder = '輸入您的訊息...';
+}
+
+function addMessageToChat(role, message) {
+    const chatMessages = document.getElementById('chat-messages');
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `message ${role}-message`;
+    
+    // Set innerHTML directly since we're receiving sanitized HTML from server
+    messageDiv.innerHTML = message;
+    
+    chatMessages.appendChild(messageDiv);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
 function selectSex(sex) {
@@ -84,6 +115,11 @@ function selectCFS(answer) {
     document.getElementById('cfs-buttons').style.display = 'none';
 }
 
+function selectMedicalHistory(history) {
+    sendMessage(history);
+    document.getElementById('medical-history-buttons').style.display = 'none';
+}
+
 function selectWorry(worry) {
     sendMessage(worry);
     document.getElementById('worry-buttons').style.display = 'none';
@@ -93,37 +129,18 @@ function selectQuestion(question) {
     sendMessage(question);
 }
 
-function addMessageToChat(role, message) {
-    const chatMessages = document.getElementById('chat-messages');
-    const messageDiv = document.createElement('div');
-    messageDiv.className = `message ${role}-message`;
-    
-    // Handle line breaks and format message
-    if (typeof message === 'string') {
-        const formattedMessage = message.replace(/\n/g, '<br>');
-        messageDiv.innerHTML = formattedMessage;
-    } else {
-        messageDiv.innerHTML = message;
-    }
-    
-    chatMessages.appendChild(messageDiv);
-    chatMessages.scrollTop = chatMessages.scrollHeight;
-
-    // Show self-pay button after collecting basic information
-    if (message.includes('可以點擊下方綠色按鈕進入自費項目選擇')) {
-        document.getElementById('self-pay-button').style.display = 'flex';
-        // Hide question buttons when showing self-pay button
-        document.getElementById('question-buttons').style.display = 'none';
-    }
+// When page loads, send empty message to get initial greeting
+window.onload = function() {
+    hideAllButtons();
+    sendMessage('');
 }
 
-// 當頁面載入時自動發送一個空消息來觸發首次問候語
-window.onload = function() {
-    sendMessage('');
-};
-
+// Add enter key handler for input
 document.getElementById('user-input').addEventListener('keypress', function(e) {
     if (e.key === 'Enter') {
-        sendMessage();
+        const message = this.value.trim();
+        if (message) {
+            sendMessage(message);
+        }
     }
 });
