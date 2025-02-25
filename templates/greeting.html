@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>歡迎使用麻醉諮詢助手</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="greeting-container">
+        <div class="greeting-card">
+            <h1>歡迎使用麻醉諮詢助手</h1>
+            <div class="greeting-icon">👋</div>
+            <p class="greeting-text">
+                您好！我是您的麻醉諮詢助手。<br>
+                我將協助您了解麻醉相關資訊，並為您提供個人化的建議。
+            </p>
+            <div class="feature-list">
+                <div class="feature-item">
+                    <span class="feature-icon">💬</span>
+                    <p>智能對話，解答您的疑慮</p>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">📋</span>
+                    <p>個人化麻醉建議</p>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">🏥</span>
+                    <p>術前準備指引</p>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">⚕️</span>
+                    <p>自費項目諮詢</p>
+                </div>
+            </div>
+            <a href="{{ url_for('chat') }}" class="start-button">
+                開始諮詢 <span class="arrow">→</span>
+            </a>
+        </div>
+    </div>
+</body>
+</html>

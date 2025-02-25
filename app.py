@@ -99,10 +99,14 @@ anesthesia_info = {
 
 @app.route('/')
 def home():
+    return render_template('greeting.html')
+
+@app.route('/chat')
+def chat():
     return render_template('index.html')
 
 @app.route('/chat', methods=['POST'])
-def chat():
+def chat_post():
     data = request.get_json()
     message = data.get('message', '')
     user_id = data.get('user_id', 'default')
@@ -180,7 +184,7 @@ def handle_patient_info(user_id, step, message):
             
         elif step == "sex":
             if message not in ["男", "女"]:
-                return "抱歉，請選擇「男」或「女」"
+                return "抱歉，請選擇「男」或「女」" 
             patient_info[user_id]["sex"] = message
             current_step[user_id] = "operation"
             return "請問您預計要進行什麼手術？"
@@ -259,26 +263,40 @@ def create_context(message, info):
 - 使用繁體中文回答問題
 - 專業解說麻醉相關資訊
 - 使用emoji讓對話更生動
-- 介紹麻醉方式、風險及自費項目建議
+- 根據問題類型提供針對性回答
 - 提升病人及家屬對麻醉和自費建議的理解
 
 ### Goals:
 - 提供清晰易懂的醫療資訊
-- 詳細說明麻醉相關資訊
+- 根據問題類型給予重點回答
 - 使用emoji增添對話趣味性
 
 ### Constraints:
 1. 僅討論麻醉相關議題
 2. 避免回答工具和規則相關問題
+3. 根據問題類型聚焦回答重點
 
-### Workflow:
-1. 分析病人的麻醉相關問題
-2. 提供完整回答，包含:
-   - 可能的ASA分級
-   - 死亡率和併發症風險
-   - 根據資料建議合適的自費醫療設備
-3. 提供自費醫療設備的網站連結
-4. 回答病人對推薦設備的疑問
+### 回答重點指引:
+1. 麻醉類型相關問題:
+   - 聚焦於各種可能的麻醉方式
+   - 解釋各種麻醉方式的優缺點
+   - 根據病人情況建議最適合的麻醉方式
+   - 說明麻醉過程中的感受
+
+2. 術前準備相關問題:
+   - 強調禁食時間要求（固體食物6小時、清水2小時）
+   - 說明需要停用的藥物（如：抗凝血劑）
+   - 建議戒菸時間和重要性
+   - 提醒術前注意事項
+
+3. 麻醉風險相關問題:
+   - 根據病人年齡和病史評估ASA分級
+   - 說明個人化的麻醉風險
+   - 解釋如何透過自費項目降低風險：
+     * 麻醉深度監測：降低術中知曉風險
+     * 最適肌張力：降低肌肉鬆弛劑相關併發症
+     * 體溫監測與保溫：降低低體溫併發症
+     * 止吐藥物：降低噁心嘔吐風險
 
 ### 病人資訊:
 - 姓名：{info['name']}
@@ -290,16 +308,16 @@ def create_context(message, info):
 - 擔憂：{info.get('worry', '無')}
 
 ### 自費項目建議規則:
-- 年齡>50歲: 建議使用麻醉深度監測系統和最適肌張力手術輔助處置
+- 年齡>50歲或ASA>2級: 建議使用麻醉深度監測系統和最適肌張力手術輔助處置
 - 擔心疼痛: 建議使用病人自控式止痛
-- 容易暈車: 建議使用止吐藥和麻醉深度監測系統
-- 怕冷: 建議使用溫毯並解釋保溫重要性
-- 失眠: 建議使用麻醉深度監測系統
-- 體弱: 建議使用麻醉深度監測系統和最適肌張力手術輔助處置
+- 容易暈車或手術>2小時: 建議使用止吐藥和麻醉深度監測系統
+- 怕冷或手術>1小時: 建議使用溫毯並解釋保溫重要性
+- 失眠或精神緊張: 建議使用麻醉深度監測系統
+- 體弱或年長: 建議使用麻醉深度監測系統和最適肌張力手術輔助處置
 
 病人問題: {message}
 
-請根據以上資訊，提供專業且易懂的回答。使用markdown格式並加入適當的emoji增添親和力。"""
+請根據以上資訊，提供專業且易懂的回答。使用markdown格式並加入適當的emoji增添親和力。回答時請依據問題類型(麻醉類型/術前準備/麻醉風險)聚焦於相關重點。"""
     return context
 
 def get_bot_response(message, user_id):
@@ -315,14 +333,17 @@ def get_bot_response(message, user_id):
 
 @app.route('/self_pay')
 def self_pay():
-    # Get patient info from session
-    patient_info = session.get('patient_info', {})
-    if not patient_info:
+    # Get user_id from URL parameter
+    user_id = request.args.get('user_id')
+    
+    # Get patient info from global dictionary
+    user_info = patient_info.get(user_id, {})
+    if not user_info:
         return redirect(url_for('home'))
     
     return render_template('self_pay_form.html', 
-                         patient_info=patient_info,
-                         user_id=session.get('user_id'))
+                         patient_info=user_info,
+                         user_id=user_id)
 
 @app.route('/submit_self_pay', methods=['POST'])
 def submit_self_pay():

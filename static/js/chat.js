@@ -40,7 +40,7 @@ function sendMessage(message) {
 
         // If this is an API response (after initial flow), only show question buttons
         if (current_step === 'chat' || response.includes('api response')) {
-            document.getElementById('question-buttons').style.display = 'flex';
+            showButtons('question-buttons');
             document.getElementById('user-input').placeholder = '輸入您的問題...';
             return;
         }
@@ -48,30 +48,30 @@ function sendMessage(message) {
         // Below are only for initial flow
         // Show sex buttons when asking about gender
         if (response.includes('性別是') || (response.includes('男') && response.includes('女'))) {
-            document.getElementById('sex-buttons').style.display = 'flex';
+            showButtons('sex-buttons');
         }
 
         // Show CFS buttons when asking about independence
         if (response.includes('自行外出') && response.includes('是/否')) {
-            document.getElementById('cfs-buttons').style.display = 'flex';
+            showButtons('cfs-buttons');
         }
 
         // Show medical history buttons when asking about medical history
         if ((response.includes('慢性病史') || response.includes('病史')) && 
             !response.includes('資訊摘要')) {
-            document.getElementById('medical-history-buttons').style.display = 'flex';
+            showButtons('medical-history-buttons');
             document.getElementById('user-input').placeholder = '或直接輸入您的病史...';
         }
 
         // Show worry buttons when asking about concerns
         if (response.includes('最擔心什麼') && !response.includes('資訊摘要')) {
-            document.getElementById('worry-buttons').style.display = 'flex';
+            showButtons('worry-buttons');
             document.getElementById('user-input').placeholder = '或直接輸入您的擔憂...';
         }
 
         // Show question buttons after summary
         if (response.includes('關於麻醉的問題') && response.includes('資訊摘要')) {
-            document.getElementById('question-buttons').style.display = 'flex';
+            showButtons('question-buttons');
             document.getElementById('user-input').placeholder = '輸入您的問題...';
             current_step = 'chat';
         }
@@ -83,25 +83,29 @@ function sendMessage(message) {
 }
 
 function hideAllButtons() {
-    // Hide all button groups
     document.getElementById('sex-buttons').style.display = 'none';
     document.getElementById('cfs-buttons').style.display = 'none';
     document.getElementById('medical-history-buttons').style.display = 'none';
     document.getElementById('worry-buttons').style.display = 'none';
     document.getElementById('question-buttons').style.display = 'none';
-    // Reset input placeholder
-    document.getElementById('user-input').placeholder = '輸入您的訊息...';
+}
+
+function showButtons(buttonId) {
+    document.getElementById(buttonId).style.display = 'flex';
+    setTimeout(scrollToBottom, 100); // Scroll after buttons render
 }
 
 function addMessageToChat(role, message) {
     const chatMessages = document.getElementById('chat-messages');
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${role}-message`;
-    
-    // Set innerHTML directly since we're receiving sanitized HTML from server
     messageDiv.innerHTML = message;
-    
     chatMessages.appendChild(messageDiv);
+    scrollToBottom();
+}
+
+function scrollToBottom() {
+    const chatMessages = document.getElementById('chat-messages');
     chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
@@ -127,6 +131,15 @@ function selectWorry(worry) {
 
 function selectQuestion(question) {
     sendMessage(question);
+}
+
+// Function to handle self-pay transition
+function goToSelfPay() {
+    // Store user ID in session storage
+    sessionStorage.setItem('user_id', userId);
+    
+    // Redirect to self-pay form
+    window.location.href = '/self_pay?user_id=' + userId;
 }
 
 // When page loads, send empty message to get initial greeting
