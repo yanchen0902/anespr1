@@ -6,9 +6,64 @@ import os
 from dotenv import load_dotenv
 from markdown import markdown
 import bleach
+from flask_login import login_user, login_required, logout_user, current_user
+from werkzeug.security import generate_password_hash, check_password_hash
+from models import db, User, Patient, SelfPayItem, ChatHistory, init_login_manager
 
 # Load environment variables
 load_dotenv()
+
+# Initialize Flask app
+app = Flask(__name__)
+app.config['JSON_AS_ASCII'] = False
+app.secret_key = os.getenv('SECRET_KEY', 'your-secret-key-here')  # Make sure to set this in .env
+
+# Configure SQLAlchemy
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///patients.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SQLALCHEMY_ECHO'] = True  # Enable SQL query logging
+
+# Initialize database
+db.init_app(app)
+
+# Create tables within application context
+with app.app_context():
+    db.create_all()
+    print("Database tables created successfully!")
+
+# Initialize Flask-Login
+init_login_manager(app)
+
+# 問題流程
+questions = {
+    "name": "請問您的姓名是？",
+    "age": "請問您的年齡是？",
+    "sex": "請問您的性別是？（男/女）",
+    "cfs": "您是否能夠自行外出，不需要他人協助？",
+    "medical_history": "請告訴我您的過去病史（例如：高血壓、糖尿病、心臟病等）？如果沒有，請回答「無」",
+    "operation": "請問您預計要進行什麼手術？",
+    "worry": "您有什麼擔心的地方嗎？"
+}
+
+# 麻醉相關資訊和建議
+anesthesia_info = {
+    "全身麻醉": {
+        "描述": "全身麻醉會讓您在手術過程中完全睡著",
+        "準備事項": [
+            "手術前6-8小時禁食",
+            "手術前24小時內避免吸菸",
+            "告知醫師目前服用的所有藥物"
+        ]
+    },
+    "區域麻醉": {
+        "描述": "區域麻醉會使身體特定部位失去知覺",
+        "準備事項": [
+            "依據手術類型可能需要禁食",
+            "大多數藥物可以照常服用",
+            "遵循麻醉醫師的具體指示"
+        ]
+    }
+}
 
 # Initialize Gemini API
 GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')
@@ -57,46 +112,6 @@ except Exception as e:
     print(f"Error initializing Gemini API: {str(e)}")
     raise
 
-app = Flask(__name__, template_folder='templates', static_folder='static')
-app.config['JSON_AS_ASCII'] = False
-app.secret_key = 'your_secret_key_here'
-
-# 儲存聊天記錄和病人資訊
-chat_histories = {}
-patient_info = {}
-current_step = {}
-
-# 問題流程
-questions = {
-    "name": "請問您的姓名是？",
-    "age": "請問您的年齡是？",
-    "sex": "請問您的性別是？（男/女）",
-    "cfs": "您是否能夠自行外出，不需要他人協助？",
-    "medical_history": "請告訴我您的過去病史（例如：高血壓、糖尿病、心臟病等）？如果沒有，請回答「無」",
-    "operation": "請問您預計要進行什麼手術？",
-    "worry": "您有什麼擔心的地方嗎？"
-}
-
-# 麻醉相關資訊和建議
-anesthesia_info = {
-    "全身麻醉": {
-        "描述": "全身麻醉會讓您在手術過程中完全睡著",
-        "準備事項": [
-            "手術前6-8小時禁食",
-            "手術前24小時內避免吸菸",
-            "告知醫師目前服用的所有藥物"
-        ]
-    },
-    "區域麻醉": {
-        "描述": "區域麻醉會使身體特定部位失去知覺",
-        "準備事項": [
-            "依據手術類型可能需要禁食",
-            "大多數藥物可以照常服用",
-            "遵循麻醉醫師的具體指示"
-        ]
-    }
-}
-
 @app.route('/')
 def home():
     return render_template('greeting.html')
@@ -112,23 +127,24 @@ def chat_post():
     user_id = data.get('user_id', 'default')
 
     # Initialize chat history and patient info if not exists
-    if user_id not in chat_histories:
-        chat_histories[user_id] = []
-        patient_info[user_id] = {}
-        current_step[user_id] = "name"
+    if user_id not in session:
+        session[user_id] = {}
+        session[user_id]['chat_history'] = []
+        session[user_id]['patient_info'] = {}
+        session[user_id]['current_step'] = "name"
         response = "您好！我是麻醉諮詢助手。為了更好地為您服務，請告訴我您的姓名。"
-        chat_histories[user_id].append({"role": "bot", "message": response})
+        session[user_id]['chat_history'].append({"role": "bot", "message": response})
         return jsonify({"response": format_response(response)})
 
     # Save user message
-    chat_histories[user_id].append({"role": "user", "message": message})
+    session[user_id]['chat_history'].append({"role": "user", "message": message})
 
     # Get current step and process message
-    step = current_step.get(user_id)
+    step = session[user_id]['current_step']
     response = handle_patient_info(user_id, step, message)
 
     # Save bot response
-    chat_histories[user_id].append({"role": "bot", "message": response})
+    session[user_id]['chat_history'].append({"role": "bot", "message": response})
     return jsonify({"response": format_response(response)})
 
 def format_response(response):
@@ -163,75 +179,109 @@ def format_response(response):
         return response  # Return original response if formatting fails
 
 def handle_patient_info(user_id, step, message):
-    try:
-        if step == "name":
-            if len(message.strip()) < 1:
-                return "請告訴我您的姓名。"
-            patient_info[user_id]["name"] = message
-            current_step[user_id] = "age"
-            return f"您好，{message}！請問您的年齡是？"
+    if 'patient_info' not in session[user_id]:
+        session[user_id]['patient_info'] = {}
+    
+    info = session[user_id]['patient_info']
+    
+    if step == "name":
+        if len(message.strip()) < 1:
+            return "請告訴我您的姓名。"
+        info['name'] = message
+        session[user_id]['current_step'] = "age"
+        session.modified = True
+        return "您好，" + message + "！請問您的年齡是？"
             
-        elif step == "age":
-            try:
-                age = int(message.replace("歲", "").strip())
-                if age < 0 or age > 150:
-                    return "請輸入有效的年齡（0-150歲）"
-                patient_info[user_id]["age"] = age
-                current_step[user_id] = "sex"
-                return "請問您的性別是？（男/女）"
-            except ValueError:
-                return "抱歉，我沒有理解您的年齡，請直接輸入數字，例如：25"
+    elif step == "age":
+        try:
+            age = int(message.replace("歲", "").strip())
+            if age < 0 or age > 150:
+                return "請輸入有效的年齡（0-150歲）"
+            info['age'] = age
+            session[user_id]['current_step'] = "sex"
+            session.modified = True
+            return "請問您的性別是？（男/女）"
+        except ValueError:
+            return "抱歉，我沒有理解您的年齡，請直接輸入數字，例如：25"
             
-        elif step == "sex":
-            if message not in ["男", "女"]:
-                return "抱歉，請選擇「男」或「女」" 
-            patient_info[user_id]["sex"] = message
-            current_step[user_id] = "operation"
-            return "請問您預計要進行什麼手術？"
+    elif step == "sex":
+        if message not in ["男", "女"]:
+            return "抱歉，請選擇「男」或「女」" 
+        info['sex'] = message
+        session[user_id]['current_step'] = "operation"
+        session.modified = True
+        return "請問您預計要進行什麼手術？"
             
-        elif step == "operation":
-            if len(message.strip()) < 1:
-                return "請告訴我您預計要進行的手術。"
-            patient_info[user_id]["operation"] = message
-            current_step[user_id] = "cfs"
-            return "您是否能夠自行外出，不需要他人協助？（是/否）"
+    elif step == "operation":
+        if len(message.strip()) < 1:
+            return "請告訴我您預計要進行的手術。"
+        info['operation'] = message
+        session[user_id]['current_step'] = "cfs"
+        session.modified = True
+        return "您是否能夠自行外出，不需要他人協助？（是/否）"
             
-        elif step == "cfs":
-            if message.lower() in ["是", "yes", "y", "可以"]:
-                patient_info[user_id]["cfs"] = "是"
-            else:
-                patient_info[user_id]["cfs"] = "否"
-            current_step[user_id] = "medical_history"
-            return "請問您有什麼慢性病史嗎？您可以點選常見病史或直接輸入。如果沒有，請點選「沒有特殊病史」。"
-            
-        elif step == "medical_history":
-            if len(message.strip()) < 1:
-                return "請告訴我您的病史，如果沒有請點選「沒有特殊病史」或輸入「沒有」。"
-            patient_info[user_id]["medical_history"] = message
-            current_step[user_id] = "worry"
-            return "您最擔心什麼？您可以點選或輸入您的擔憂。如果沒有特別擔心的，請點選「沒有特別擔心」。"
-            
-        elif step == "worry":
-            if len(message.strip()) < 1:
-                return "請告訴我您的擔憂，如果沒有特別擔心的，請點選「沒有特別擔心」。"
-            patient_info[user_id]["worry"] = message
-            current_step[user_id] = "chat"
-            
-            # Generate summary with markdown formatting
-            summary = generate_summary(patient_info[user_id])
-            return summary + "\n\n您可以問我關於麻醉的問題，我會盡力為您解答。"
-            
-        elif step == "chat":
-            response = get_bot_response(message, user_id)
-            return format_response(response)
-            
+    elif step == "cfs":
+        if message.lower() in ["是", "yes", "y", "可以"]:
+            info['cfs'] = "是"
         else:
-            current_step[user_id] = "name"
-            return "抱歉，讓我們重新開始。請告訴我您的姓名。"
+            info['cfs'] = "否"
+        session[user_id]['current_step'] = "medical_history"
+        session.modified = True
+        return "請問您有什麼重要的病史嗎？例如：高血壓、糖尿病、心臟病等。如果沒有，請回答「無」。"
             
-    except Exception as e:
-        print(f"Error in handle_patient_info: {str(e)}")
-        return "抱歉，處理您的資訊時發生錯誤。請重新輸入。"
+    elif step == "medical_history":
+        if len(message.strip()) < 1:
+            return "請告訴我您的病史，如果沒有請點選「沒有特殊病史」。"
+        info['medical_history'] = message
+        session[user_id]['current_step'] = "worry"
+        session.modified = True
+        return "您最擔心什麼？您可以點選或輸入您的擔憂。如果沒有特別擔心的，請點選「沒有特別擔心」。"
+            
+    elif step == "worry":
+        if len(message.strip()) < 1:
+            return "請告訴我您的擔憂，如果沒有特別擔心的，請點選「沒有特別擔心」。"
+        info['worry'] = message
+        
+        # Save patient data to database
+        print(f"Attempting to save patient data: {info}")  # Debug print
+        try:
+            # Create new patient
+            patient = Patient()
+            patient.name = info.get('name', '')
+            patient.age = info.get('age', 0)
+            patient.sex = info.get('sex', '')
+            patient.operation = info.get('operation', '')
+            patient.cfs = info.get('cfs', '')
+            patient.medical_history = info.get('medical_history', '')
+            patient.worry = info.get('worry', '')
+            
+            # Add and commit
+            print("Adding patient to session...")
+            db.session.add(patient)
+            print("Committing changes...")
+            db.session.commit()
+            print(f"Successfully saved patient with ID: {patient.id}")
+            
+        except Exception as e:
+            print(f"Error saving patient data: {str(e)}")
+            import traceback
+            print(traceback.format_exc())
+            db.session.rollback()
+        
+        session[user_id]['current_step'] = "chat"
+        session.modified = True
+            
+        # Generate summary with markdown formatting
+        summary = generate_summary(info)
+        return summary + "\n\n您可以問我關於麻醉的問題，我會盡力為您解答。"
+            
+    elif step == "chat":
+        response = get_bot_response(message, user_id)
+        return format_response(response)
+            
+    else:
+        session[user_id]['current_step'] = "name"
+        return "抱歉，讓我們重新開始。請告訴我您的姓名。"
 
 def generate_summary(info):
     """Generate a markdown-formatted summary of patient information"""
@@ -321,14 +371,44 @@ def create_context(message, info):
     return context
 
 def get_bot_response(message, user_id):
+    info = session[user_id].get('patient_info', {})
+    
+    # Create context for the model
+    context = create_context(message, info)
+    
     try:
-        # Prepare context info
-        info = patient_info[user_id]
-        # Generate response using context
-        response = model.generate_content(create_context(message, info))
-        return response.text
+        # Get response from API
+        response = model.generate_content(context).text
+        
+        # Save to database if we have a patient
+        try:
+            # Find the patient by name and created_at (most recent)
+            patient = Patient.query.filter_by(name=info.get('name')).order_by(Patient.created_at.desc()).first()
+            if patient:
+                # Save both user message and bot response
+                user_msg = ChatHistory(
+                    patient_id=patient.id,
+                    message=message,
+                    response=None,
+                    message_type='user'
+                )
+                bot_msg = ChatHistory(
+                    patient_id=patient.id,
+                    message=None,
+                    response=response,
+                    message_type='bot'
+                )
+                db.session.add(user_msg)
+                db.session.add(bot_msg)
+                db.session.commit()
+                print(f"Saved chat history for patient {patient.name}")
+        except Exception as e:
+            print(f"Error saving chat history: {str(e)}")
+            db.session.rollback()
+        
+        return response
     except Exception as e:
-        print(f"Error generating response: {str(e)}")
+        print(f"Error getting API response: {str(e)}")
         return "抱歉，我現在無法回答您的問題。請稍後再試。"
 
 @app.route('/self_pay')
@@ -337,7 +417,7 @@ def self_pay():
     user_id = request.args.get('user_id')
     
     # Get patient info from global dictionary
-    user_info = patient_info.get(user_id, {})
+    user_info = session.get(user_id, {}).get('patient_info', {})
     if not user_info:
         return redirect(url_for('home'))
     
@@ -347,29 +427,66 @@ def self_pay():
 
 @app.route('/submit_self_pay', methods=['POST'])
 def submit_self_pay():
-    selected_items = request.form.getlist('items')
-    user_id = request.form.get('user_id')
+    data = request.get_json()
+    user_id = data.get('user_id')
+    selected_items = data.get('selected_items', [])
     
-    # Get prices for selected items
-    prices = {
-        'depth_monitor': 1711,
-        'muscle_monitor': 6500,
-        'pca': 6500,  # Using average of 5500-7500
-        'warming': 980,
-        'anti_nausea': 99
-    }
+    patient = Patient.query.get(user_id)
+    if patient:
+        for item in selected_items:
+            self_pay_item = SelfPayItem(
+                patient_id=user_id,
+                item_name=item['name'],
+                price=float(item['price'])
+            )
+            db.session.add(self_pay_item)
+        db.session.commit()
     
-    total = sum(prices[item] for item in selected_items if item in prices)
+    return jsonify({'status': 'success'})
+
+@app.route('/admin/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        user = User.query.filter_by(username=username).first()
+        if user and check_password_hash(user.password_hash, password):
+            login_user(user)
+            return redirect(url_for('admin_dashboard'))
+        flash('Invalid username or password')
+    return render_template('login.html')
+
+@app.route('/admin/dashboard')
+@login_required
+def admin_dashboard():
+    today = datetime.utcnow().date()
+    today_count = Patient.query.filter(
+        db.func.date(Patient.created_at) == today
+    ).count()
     
-    # Store selection in session
-    session['self_pay_items'] = selected_items
-    session['self_pay_total'] = total
+    month_start = today.replace(day=1)
+    month_count = Patient.query.filter(
+        Patient.created_at >= month_start
+    ).count()
     
-    # Here you can add code to save to database or generate PDF
+    patients = Patient.query.order_by(Patient.created_at.desc()).limit(50).all()
     
-    # For now, just show a success message
-    flash('自費項目選擇已完成！總金額：NT$ {:,}'.format(total))
-    return redirect(url_for('home'))
+    return render_template('admin.html',
+                         today_count=today_count,
+                         month_count=month_count,
+                         patients=patients)
+
+@app.route('/admin/patient/<id>')
+@login_required
+def patient_detail(id):
+    patient = Patient.query.get_or_404(id)
+    return render_template('patient_detail.html', patient=patient)
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for('login'))
 
 if __name__ == '__main__':
     app.run(debug=True)

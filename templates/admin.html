@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>麻醉諮詢系統 - 管理後台</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .dashboard {
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .stats {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            flex: 1;
+        }
+        .stat-card h3 {
+            margin: 0;
+            color: #666;
+            font-size: 14px;
+        }
+        .stat-card .number {
+            font-size: 32px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin: 10px 0;
+        }
+        .patient-list {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .patient-list table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .patient-list th, .patient-list td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        .patient-list th {
+            background: #f8f9fa;
+            font-weight: 600;
+        }
+        .patient-list tr:hover {
+            background: #f8f9fa;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .logout-btn {
+            padding: 8px 16px;
+            background: #e74c3c;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+        }
+        .logout-btn:hover {
+            background: #c0392b;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <div class="header">
+            <h1>麻醉諮詢系統管理後台</h1>
+            <a href="{{ url_for('logout') }}" class="logout-btn">登出</a>
+        </div>
+        
+        <div class="stats">
+            <div class="stat-card">
+                <h3>今日諮詢數</h3>
+                <div class="number">{{ today_count }}</div>
+            </div>
+            <div class="stat-card">
+                <h3>本月諮詢數</h3>
+                <div class="number">{{ month_count }}</div>
+            </div>
+        </div>
+
+        <div class="patient-list">
+            <h2>最近病人記錄</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>時間</th>
+                        <th>姓名</th>
+                        <th>年齡</th>
+                        <th>性別</th>
+                        <th>手術</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for patient in patients %}
+                    <tr>
+                        <td>{{ patient.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td>{{ patient.name }}</td>
+                        <td>{{ patient.age }}</td>
+                        <td>{{ patient.sex }}</td>
+                        <td>{{ patient.operation }}</td>
+                        <td>
+                            <a href="{{ url_for('patient_detail', id=patient.id) }}">查看詳情</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</body>
+</html>
