@@ -431,13 +431,24 @@ button:active {
 }
 
 /* Self-pay form styles */
+.self-pay-container {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
 .form-container {
     background: white;
     border-radius: 10px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     padding: 30px;
+    width: 100%;
     max-width: 800px;
-    margin: 0 auto;
+    margin: 20px auto;
+    box-sizing: border-box;
 }
 
 .form-container h2 {
