@@ -19,17 +19,25 @@ app.config['JSON_AS_ASCII'] = False
 app.secret_key = os.getenv('SECRET_KEY', 'your-secret-key-here')  # Make sure to set this in .env
 
 # Configure SQLAlchemy
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///patients.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///patients.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_ECHO'] = True  # Enable SQL query logging
 
 # Initialize database
 db.init_app(app)
 
-# Create tables within application context
+# Create tables and admin user within application context
 with app.app_context():
     db.create_all()
-    print("Database tables created successfully!")
+    # Create admin user if it doesn't exist
+    admin = User.query.filter_by(username='admin').first()
+    if not admin:
+        admin = User(
+            username='admin',
+            password_hash=generate_password_hash('admin123')
+        )
+        db.session.add(admin)
+        db.session.commit()
 
 # Initialize Flask-Login
 init_login_manager(app)
@@ -489,4 +497,4 @@ def logout():
     return redirect(url_for('login'))
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=int(os.getenv('PORT', 8080)), debug=False)
