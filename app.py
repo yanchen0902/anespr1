@@ -1,30 +1,48 @@
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for, flash
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
 import google.generativeai as genai
 import os
 from dotenv import load_dotenv
 from markdown import markdown
 import bleach
+import logging
+import secrets
 from flask_login import login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from models import db, User, Patient, SelfPayItem, ChatHistory, init_login_manager
 
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 # Load environment variables
 load_dotenv()
 
-# Initialize Flask app
 app = Flask(__name__)
 app.config['JSON_AS_ASCII'] = False
-app.secret_key = os.getenv('SECRET_KEY', 'your-secret-key-here')  # Make sure to set this in .env
 
-# Configure SQLAlchemy
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///patients.db')
+# Configure SQLAlchemy based on environment
+if os.getenv('GAE_ENV', '').startswith('standard'):
+    # Running on App Engine, use Cloud SQL
+    app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'mysql+pymysql://root:anespr123@/patients?unix_socket=/cloudsql/gen-lang-client-0605675586:asia-east1:anespr1')
+else:
+    # Running locally, use SQLite
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///patients.db'
+
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_ECHO'] = True  # Enable SQL query logging
 
-# Initialize database
+# Enhanced session configuration
+app.config['SESSION_COOKIE_SECURE'] = False  # Set to False for local testing
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = None  # Allow cross-site cookies
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=1)
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', secrets.token_hex(32))
+
+# Initialize database and login manager
 db.init_app(app)
+init_login_manager(app)
 
 # Create tables and admin user within application context
 with app.app_context():
@@ -39,18 +57,39 @@ with app.app_context():
         db.session.add(admin)
         db.session.commit()
 
-# Initialize Flask-Login
-init_login_manager(app)
+@app.before_request
+def make_session_permanent():
+    session.permanent = True
+    # Log request information for debugging
+    logger.info(f"Request from IP: {request.remote_addr}")
+    logger.info(f"Session ID: {session.get('_id', 'No ID')}")
+    logger.info(f"Current session data: {dict(session)}")
+    
+    # Ensure user_id exists in session
+    if request.path == '/chat' and request.method == 'POST':
+        try:
+            data = request.get_json()
+            user_id = data.get('user_id')
+            if user_id and user_id not in session:
+                logger.info(f"Initializing session for user_id: {user_id}")
+                session[user_id] = {
+                    'chat_history': [],
+                    'patient_info': {},
+                    'current_step': 'name'
+                }
+                session.modified = True
+        except Exception as e:
+            logger.error(f"Error in before_request: {str(e)}", exc_info=True)
 
 # 問題流程
 questions = {
-    "name": "請問您的姓名是？",
+    "name": "您好！我是您的麻醉諮詢助手。為了提供您最適合的建議，請讓我先了解一些基本資訊。請問您的大名是？",
     "age": "請問您的年齡是？",
-    "sex": "請問您的性別是？（男/女）",
-    "cfs": "您是否能夠自行外出，不需要他人協助？",
-    "medical_history": "請告訴我您的過去病史（例如：高血壓、糖尿病、心臟病等）？如果沒有，請回答「無」",
+    "sex": "請問您的性別是？",
+    "cfs": "您是否能夠自行外出，不需要他人協助？（是/否）",
+    "medical_history": "請問您有什麼重要的病史嗎？例如：高血壓、糖尿病、心臟病等。如果沒有，請回答「無」",
     "operation": "請問您預計要進行什麼手術？",
-    "worry": "您有什麼擔心的地方嗎？"
+    "worry": "您最擔心什麼？您可以點選或輸入您的擔憂。如果沒有特別擔心的，請點選「沒有特別擔心」。"
 }
 
 # 麻醉相關資訊和建議
@@ -130,63 +169,96 @@ def chat():
 
 @app.route('/chat', methods=['POST'])
 def chat_post():
-    data = request.get_json()
-    message = data.get('message', '')
-    user_id = data.get('user_id', 'default')
-
-    # Initialize chat history and patient info if not exists
-    if user_id not in session:
-        session[user_id] = {}
-        session[user_id]['chat_history'] = []
-        session[user_id]['patient_info'] = {}
-        session[user_id]['current_step'] = "name"
-        response = "您好！我是麻醉諮詢助手。為了更好地為您服務，請告訴我您的姓名。"
-        session[user_id]['chat_history'].append({"role": "bot", "message": response})
-        return jsonify({"response": format_response(response)})
-
-    # Save user message
-    session[user_id]['chat_history'].append({"role": "user", "message": message})
-
-    # Get current step and process message
-    step = session[user_id]['current_step']
-    response = handle_patient_info(user_id, step, message)
-
-    # Save bot response
-    session[user_id]['chat_history'].append({"role": "bot", "message": response})
-    return jsonify({"response": format_response(response)})
-
-def format_response(response):
-    """Convert response to HTML with markdown formatting"""
     try:
-        # Convert markdown to HTML
-        html_response = markdown(response, extensions=['extra'])
+        data = request.get_json()
+        message = data.get('message', '')
+        user_id = data.get('user_id', 'default')
         
-        # Define allowed HTML tags and attributes
-        allowed_tags = [
-            'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-            'ul', 'ol', 'li', 'strong', 'em', 'a',
-            'code', 'pre', 'blockquote', 'table', 'thead',
-            'tbody', 'tr', 'th', 'td', 'br', 'hr'
-        ]
-        allowed_attributes = {
-            'a': ['href', 'title'],
-            'img': ['src', 'alt', 'title']
-        }
+        logger.info(f"Received chat message: {message} from user_id: {user_id}")
         
-        # Clean and sanitize HTML
-        clean_html = bleach.clean(
-            html_response,
-            tags=allowed_tags,
-            attributes=allowed_attributes,
-            strip=True
-        )
+        # Initialize chat history and patient info if not exists
+        if user_id not in session:
+            logger.info(f"Initializing new session for user_id: {user_id}")
+            session[user_id] = {
+                'chat_history': [],
+                'patient_info': {},
+                'current_step': 'name'
+            }
+            response = "您好！我是麻醉諮詢助手。為了更好地為您服務，請告訴我您的姓名。"
+            
+            # Save initial bot message to both session and database
+            session[user_id]['chat_history'].append({"role": "bot", "message": response})
+            session.modified = True
+            logger.info(f"New session initialized: {session[user_id]}")
+            
+            return jsonify({"response": format_response(response)})
+
+        # Save user message to session
+        if 'chat_history' not in session[user_id]:
+            session[user_id]['chat_history'] = []
+        session[user_id]['chat_history'].append({"role": "user", "message": message})
         
-        return clean_html
+        # Ensure current_step exists
+        if 'current_step' not in session[user_id]:
+            session[user_id]['current_step'] = 'name'
+            
+        # Get current step and process message
+        step = session[user_id].get('current_step', 'name')
+        logger.info(f"Processing step: {step} for user_id: {user_id}")
+        
+        # Log session state before processing
+        logger.info(f"Session state before processing: {session[user_id]}")
+        
+        # Process message and get response
+        response = handle_patient_info(user_id, step, message)
+        logger.info(f"Response generated: {response}")
+        
+        # Save bot response to session
+        session[user_id]['chat_history'].append({"role": "bot", "message": response})
+        session.modified = True
+        
+        # Log session state after processing
+        logger.info(f"Session state after processing: {session[user_id]}")
+        
+        # Save chat history to database if patient_id exists
+        if 'patient_id' in session[user_id]:
+            try:
+                with app.app_context():
+                    patient_id = session[user_id]['patient_id']
+                    # Save user message
+                    user_chat = ChatHistory(
+                        patient_id=patient_id,
+                        role='user',
+                        message=message,
+                        message_type='conversation',
+                        timestamp=datetime.now()
+                    )
+                    db.session.add(user_chat)
+                    
+                    # Save bot response
+                    bot_chat = ChatHistory(
+                        patient_id=patient_id,
+                        role='bot',
+                        message=response,
+                        message_type='conversation',
+                        timestamp=datetime.now()
+                    )
+                    db.session.add(bot_chat)
+                    db.session.commit()
+                    logger.info(f"Chat history saved to database for patient {patient_id}")
+            except Exception as e:
+                logger.error(f"Error saving chat history to database: {str(e)}")
+                # Don't let database errors affect the chat flow
+                pass
+        
+        return jsonify({"response": format_response(response)})
     except Exception as e:
-        print(f"Error in format_response: {str(e)}")
-        return response  # Return original response if formatting fails
+        logger.error(f"Error in chat_post: {str(e)}", exc_info=True)
+        return jsonify({"response": "抱歉，系統發生錯誤。請重新開始對話。"})
 
 def handle_patient_info(user_id, step, message):
+    logger.info(f"Handling patient info - Step: {step}, Message: {message}")
+    
     if 'patient_info' not in session[user_id]:
         session[user_id]['patient_info'] = {}
     
@@ -195,9 +267,32 @@ def handle_patient_info(user_id, step, message):
     if step == "name":
         if len(message.strip()) < 1:
             return "請告訴我您的姓名。"
+            
+        # Store name and check for existing patient
         info['name'] = message
+        
+        # Check for existing patient with similar name
+        with app.app_context():
+            similar_patients = Patient.query.filter(
+                Patient.name.like(f"%{message}%")
+            ).all()
+            
+            if similar_patients:
+                # If patient exists, store patient_id in session
+                patient = similar_patients[0]  # Take the first match for now
+                session[user_id]['patient_id'] = patient.id
+                logger.info(f"Found existing patient: {patient.name} (ID: {patient.id})")
+            else:
+                # Create new patient if none found
+                new_patient = Patient(name=message)
+                db.session.add(new_patient)
+                db.session.commit()
+                session[user_id]['patient_id'] = new_patient.id
+                logger.info(f"Created new patient: {message} (ID: {new_patient.id})")
+        
         session[user_id]['current_step'] = "age"
         session.modified = True
+        logger.info(f"Name step completed. Updated session: {session[user_id]}")
         return "您好，" + message + "！請問您的年齡是？"
             
     elif step == "age":
@@ -208,6 +303,7 @@ def handle_patient_info(user_id, step, message):
             info['age'] = age
             session[user_id]['current_step'] = "sex"
             session.modified = True
+            logger.info(f"Age step completed. Updated session: {session[user_id]}")
             return "請問您的性別是？（男/女）"
         except ValueError:
             return "抱歉，我沒有理解您的年齡，請直接輸入數字，例如：25"
@@ -218,7 +314,8 @@ def handle_patient_info(user_id, step, message):
         info['sex'] = message
         session[user_id]['current_step'] = "operation"
         session.modified = True
-        return "請問您預計要進行什麼手術？"
+        logger.info(f"Sex step completed. Updated session: {session[user_id]}")
+        return questions['operation']
             
     elif step == "operation":
         if len(message.strip()) < 1:
@@ -226,7 +323,8 @@ def handle_patient_info(user_id, step, message):
         info['operation'] = message
         session[user_id]['current_step'] = "cfs"
         session.modified = True
-        return "您是否能夠自行外出，不需要他人協助？（是/否）"
+        logger.info(f"Operation step completed. Updated session: {session[user_id]}")
+        return questions['cfs']
             
     elif step == "cfs":
         if message.lower() in ["是", "yes", "y", "可以"]:
@@ -235,15 +333,17 @@ def handle_patient_info(user_id, step, message):
             info['cfs'] = "否"
         session[user_id]['current_step'] = "medical_history"
         session.modified = True
-        return "請問您有什麼重要的病史嗎？例如：高血壓、糖尿病、心臟病等。如果沒有，請回答「無」。"
+        logger.info(f"CFS step completed. Updated session: {session[user_id]}")
+        return questions['medical_history']
             
     elif step == "medical_history":
         if len(message.strip()) < 1:
-            return "請告訴我您的病史，如果沒有請點選「沒有特殊病史」。"
+            return "請告訴我您的病史，如果沒有請回答「無」。"
         info['medical_history'] = message
         session[user_id]['current_step'] = "worry"
         session.modified = True
-        return "您最擔心什麼？您可以點選或輸入您的擔憂。如果沒有特別擔心的，請點選「沒有特別擔心」。"
+        logger.info(f"Medical history step completed. Updated session: {session[user_id]}")
+        return questions['worry']
             
     elif step == "worry":
         if len(message.strip()) < 1:
@@ -251,29 +351,44 @@ def handle_patient_info(user_id, step, message):
         info['worry'] = message
         
         # Save patient data to database
-        print(f"Attempting to save patient data: {info}")  # Debug print
+        logger.info(f"Attempting to save patient data: {info}")
         try:
-            # Create new patient
-            patient = Patient()
-            patient.name = info.get('name', '')
-            patient.age = info.get('age', 0)
-            patient.sex = info.get('sex', '')
-            patient.operation = info.get('operation', '')
-            patient.cfs = info.get('cfs', '')
-            patient.medical_history = info.get('medical_history', '')
-            patient.worry = info.get('worry', '')
-            
-            # Add and commit
-            print("Adding patient to session...")
-            db.session.add(patient)
-            print("Committing changes...")
-            db.session.commit()
-            print(f"Successfully saved patient with ID: {patient.id}")
-            
+            with app.app_context():
+                # Update existing patient if found
+                if 'patient_id' in session[user_id]:
+                    patient = Patient.query.get(session[user_id]['patient_id'])
+                    if patient:
+                        patient.age = info.get('age', 0)
+                        patient.sex = info.get('sex', '')
+                        patient.operation = info.get('operation', '')
+                        patient.cfs = info.get('cfs', '')
+                        patient.medical_history = info.get('medical_history', '')
+                        patient.worry = info.get('worry', '')
+                        logger.info(f"Updating existing patient with ID: {patient.id}")
+                else:
+                    # Create new patient
+                    patient = Patient(
+                        name=info.get('name', ''),
+                        age=info.get('age', 0),
+                        sex=info.get('sex', ''),
+                        operation=info.get('operation', ''),
+                        cfs=info.get('cfs', ''),
+                        medical_history=info.get('medical_history', ''),
+                        worry=info.get('worry', '')
+                    )
+                    db.session.add(patient)
+                    logger.info("Creating new patient")
+                
+                db.session.commit()
+                logger.info(f"Successfully saved patient data")
+                
+                # Store patient_id in session if not already present
+                if 'patient_id' not in session[user_id]:
+                    session[user_id]['patient_id'] = patient.id
+                    session.modified = True
+                
         except Exception as e:
-            print(f"Error saving patient data: {str(e)}")
-            import traceback
-            print(traceback.format_exc())
+            logger.error(f"Error saving patient data: {str(e)}", exc_info=True)
             db.session.rollback()
         
         session[user_id]['current_step'] = "chat"
@@ -365,7 +480,7 @@ def create_context(message, info):
 - 病史：{info.get('medical_history', '無')}
 - 擔憂：{info.get('worry', '無')}
 
-### 自費項目建議規則:
+### 自費項目建議規則：
 - 年齡>50歲或ASA>2級: 建議使用麻醉深度監測系統和最適肌張力手術輔助處置
 - 擔心疼痛: 建議使用病人自控式止痛
 - 容易暈車或手術>2小時: 建議使用止吐藥和麻醉深度監測系統
@@ -418,6 +533,37 @@ def get_bot_response(message, user_id):
     except Exception as e:
         print(f"Error getting API response: {str(e)}")
         return "抱歉，我現在無法回答您的問題。請稍後再試。"
+
+def format_response(response):
+    """Convert response to HTML with markdown formatting"""
+    try:
+        # Convert markdown to HTML
+        html_response = markdown(response, extensions=['extra'])
+        
+        # Define allowed HTML tags and attributes
+        allowed_tags = [
+            'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+            'ul', 'ol', 'li', 'strong', 'em', 'a',
+            'code', 'pre', 'blockquote', 'table', 'thead',
+            'tbody', 'tr', 'th', 'td', 'br', 'hr'
+        ]
+        allowed_attributes = {
+            'a': ['href', 'title'],
+            'img': ['src', 'alt', 'title']
+        }
+        
+        # Clean and sanitize HTML
+        clean_html = bleach.clean(
+            html_response,
+            tags=allowed_tags,
+            attributes=allowed_attributes,
+            strip=True
+        )
+        
+        return clean_html
+    except Exception as e:
+        logger.error(f"Error in format_response: {str(e)}")
+        return response  # Return original response if formatting fails
 
 @app.route('/self_pay')
 def self_pay():
