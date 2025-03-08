@@ -67,9 +67,18 @@ h1 {
     box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
 }
 
+.text-input-area {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    position: relative;
+    margin-top: 10px;
+}
+
 #user-input {
-    flex: 1;
+    width: 100%;
     padding: 12px 15px;
+    padding-right: 70px;  
     border: 2px solid #E4A99B;
     border-radius: 12px;
     font-size: 16px;
@@ -80,7 +89,36 @@ h1 {
 
 #user-input:focus {
     outline: none;
-    box-shadow: 0 0 5px rgba(228, 169, 155, 0.5);
+    border-color: #D89485;
+    box-shadow: 0 0 5px rgba(216, 148, 133, 0.3);
+}
+
+.text-input-area button {
+    position: absolute;
+    right: 8px;  
+    top: 50%;
+    transform: translateY(-50%);
+    padding: 6px 12px;  
+    border-radius: 8px;
+    background-color: #E4A99B;
+    color: white;
+    border: none;
+    cursor: pointer;
+    font-family: "Microsoft JhengHei", "微軟正黑體", sans-serif;
+    font-size: 15px;  
+    transition: all 0.3s ease;
+    min-width: 50px;  
+    height: 32px;  
+    line-height: 1;  
+}
+
+.text-input-area button:hover {
+    background-color: #D89485;
+    transform: translateY(-50%) scale(1.02);  
+}
+
+.text-input-area button:active {
+    transform: translateY(-50%) scale(0.98);  
 }
 
 button {
@@ -154,11 +192,6 @@ button:active {
 
 .emoji {
     font-size: 20px;
-}
-
-.text-input-area {
-    display: flex;
-    gap: 10px;
 }
 
 .question-group {
