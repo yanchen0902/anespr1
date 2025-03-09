@@ -149,9 +149,10 @@
             <div class="chat-history">
                 {% for chat in patient.chat_history %}
                 <div class="chat-message {% if chat.message_type == 'user' %}user-message{% else %}bot-message{% endif %}">
-                    {% if chat.message_type == 'user' %}
+                    {% if chat.message %}
                         <div class="message-content">{{ chat.message }}</div>
-                    {% else %}
+                    {% endif %}
+                    {% if chat.response %}
                         <div class="message-content">{{ chat.response }}</div>
                     {% endif %}
                     <div class="message-time">{{ chat.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
