@@ -1,12 +1,9 @@
-from app import app, db, User
+from app_tocloud import app, db
+from models import User
 from werkzeug.security import generate_password_hash
 
 def init_db():
     with app.app_context():
-        # Drop all tables first to ensure clean state
-        db.drop_all()
-        print("Dropped all existing tables")
-        
         # Create all tables
         db.create_all()
         print("Created all tables")
@@ -17,7 +14,7 @@ def init_db():
             # Create admin user
             admin = User(
                 username='admin',
-                password_hash=generate_password_hash('admin123')  # Change this password!
+                password_hash=generate_password_hash('admin123')
             )
             db.session.add(admin)
             db.session.commit()

@@ -60,28 +60,72 @@
         .chat-history {
             margin-top: 15px;
         }
-        .chat-message {
-            margin-bottom: 15px;
+        .chat-entry {
+            margin-bottom: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            background-color: #fff;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .chat-qa {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .chat-question {
+            background-color: #e3f2fd;
             padding: 10px;
             border-radius: 8px;
+            margin-left: auto;
+            max-width: 80%;
+            white-space: pre-wrap;
+        }
+        .chat-answer {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 8px;
+            margin-right: auto;
+            max-width: 80%;
+            white-space: pre-wrap;
+        }
+        .form-flow {
+            background-color: #fff8e1;
+            padding: 10px;
+            border-radius: 8px;
+        }
+        .form-message {
+            margin: 5px 0;
+            padding: 5px 10px;
+            border-radius: 4px;
+        }
+        .form-user {
+            background-color: #e8f5e9;
+            margin-left: auto;
             max-width: 80%;
         }
-        .user-message {
-            background-color: #e3f2fd;
-            margin-left: auto;
-        }
-        .bot-message {
-            background-color: #f5f5f5;
+        .form-bot {
+            background-color: #f3e5f5;
             margin-right: auto;
+            max-width: 80%;
         }
-        .message-content {
-            margin-bottom: 5px;
-            line-height: 1.4;
+        .summary {
+            background-color: #e8eaf6;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            white-space: pre-wrap;
         }
         .message-time {
             font-size: 12px;
             color: #666;
             text-align: right;
+            margin-top: 5px;
+        }
+        .message-type {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 10px;
+            text-transform: capitalize;
         }
     </style>
 </head>
@@ -147,16 +191,34 @@
             <div class="detail-label">諮詢紀錄</div>
             {% if patient.chat_history %}
             <div class="chat-history">
-                {% for chat in patient.chat_history %}
-                <div class="chat-message {% if chat.message_type == 'user' %}user-message{% else %}bot-message{% endif %}">
-                    {% if chat.message %}
-                        <div class="message-content">{{ chat.message }}</div>
+                {% for entry in patient.chat_history %}
+                    {% if entry.type == 'form_flow' %}
+                        <div class="chat-entry form-flow">
+                            <div class="message-type">表單填寫</div>
+                            {% for msg in entry.messages %}
+                                <div class="form-message {% if msg.message_type == 'user' %}form-user{% else %}form-bot{% endif %}">
+                                    {% if msg.message %}{{ msg.message }}{% endif %}
+                                    {% if msg.response %}{{ msg.response }}{% endif %}
+                                </div>
+                            {% endfor %}
+                            <div class="message-time">{{ entry.timestamp.strftime('%Y-%m-%d %H:%M') }}</div>
+                        </div>
+                    {% elif entry.message_type == 'chat' %}
+                        <div class="chat-entry">
+                            <div class="message-type">問答互動</div>
+                            <div class="chat-qa">
+                                <div class="chat-question">{{ entry.message }}</div>
+                                <div class="chat-answer">{{ entry.response }}</div>
+                            </div>
+                            <div class="message-time">{{ entry.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
+                        </div>
+                    {% elif entry.message_type == 'summary' %}
+                        <div class="chat-entry">
+                            <div class="message-type">諮詢總結</div>
+                            <div class="summary">{{ entry.response }}</div>
+                            <div class="message-time">{{ entry.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
+                        </div>
                     {% endif %}
-                    {% if chat.response %}
-                        <div class="message-content">{{ chat.response }}</div>
-                    {% endif %}
-                    <div class="message-time">{{ chat.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
-                </div>
                 {% endfor %}
             </div>
             {% else %}
