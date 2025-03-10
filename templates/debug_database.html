@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>資料庫除錯 - 麻醉諮詢系統</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .debug-container {
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .debug-section {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .debug-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .chat-message {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+        .message-meta {
+            font-size: 12px;
+            color: #666;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f5f5f5;
+        }
+        .back-btn {
+            padding: 8px 16px;
+            background: #3498db;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="debug-container">
+        <div class="debug-header">
+            <h1>資料庫除錯資訊</h1>
+            <a href="{{ url_for('admin_dashboard') }}" class="back-btn">返回總覽</a>
+        </div>
+
+        <div class="debug-section">
+            <h2>聊天記錄統計</h2>
+            <p>總聊天記錄數: {{ chat_count }}</p>
+            
+            {% if recent_chats %}
+            <h3>最近的聊天記錄</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>病人ID</th>
+                        <th>類型</th>
+                        <th>訊息</th>
+                        <th>回應</th>
+                        <th>時間</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for chat in recent_chats %}
+                    <tr>
+                        <td>{{ chat.id }}</td>
+                        <td>{{ chat.patient_id }}</td>
+                        <td>{{ chat.message_type }}</td>
+                        <td>{{ chat.message }}</td>
+                        <td>{{ chat.response }}</td>
+                        <td>{{ chat.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p>目前沒有聊天記錄</p>
+            {% endif %}
+        </div>
+
+        <div class="debug-section">
+            <h2>病人統計</h2>
+            <p>總病人數: {{ patient_count }}</p>
+            
+            {% if recent_patients %}
+            <h3>最近的病人</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>姓名</th>
+                        <th>建立時間</th>
+                        <th>聊天記錄數</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for patient in recent_patients %}
+                    <tr>
+                        <td>{{ patient.id }}</td>
+                        <td>{{ patient.name }}</td>
+                        <td>{{ patient.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td>{{ patient_chat_counts[patient.id] }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p>目前沒有病人資料</p>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>

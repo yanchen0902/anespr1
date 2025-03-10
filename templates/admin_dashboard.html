@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理員儀表板 - 麻醉諮詢系統</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .admin-container {
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #eee;
+        }
+        .admin-nav {
+            display: flex;
+            gap: 15px;
+        }
+        .logout-btn {
+            padding: 8px 16px;
+            background: #e74c3c;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+        }
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin: 10px 0;
+        }
+        .stat-label {
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+        .stat-sub {
+            font-size: 14px;
+            color: #95a5a6;
+            margin-top: 5px;
+        }
+        .patients-list {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        .patients-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        .patients-table th,
+        .patients-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        .patients-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+        }
+        .patients-table tr:hover {
+            background: #f8f9fa;
+        }
+        .view-btn {
+            padding: 6px 12px;
+            background: #3498db;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .view-btn:hover {
+            background: #2980b9;
+        }
+        .no-data {
+            text-align: center;
+            color: #7f8c8d;
+            padding: 20px;
+        }
+        .debug-section {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-top: 30px;
+        }
+        .chat-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+        .chat-table th,
+        .chat-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+            vertical-align: top;
+        }
+        .chat-table pre {
+            margin: 0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            max-width: 300px;
+        }
+        .message-type {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .type-chat {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+        .type-summary {
+            background: #e8f5e9;
+            color: #388e3c;
+        }
+        .type-user {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+        .type-bot {
+            background: #f3e5f5;
+            color: #7b1fa2;
+        }
+        .flash-messages {
+            margin-bottom: 20px;
+        }
+        .flash {
+            padding: 10px 15px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+        .flash-error {
+            background: #ffebee;
+            color: #c62828;
+            border: 1px solid #ffcdd2;
+        }
+        .flash-success {
+            background: #e8f5e9;
+            color: #2e7d32;
+            border: 1px solid #c8e6c9;
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-container">
+        <header class="admin-header">
+            <h1>管理員儀表板</h1>
+            <nav class="admin-nav">
+                <a href="{{ url_for('admin_logout') }}" class="logout-btn">登出</a>
+            </nav>
+        </header>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            <div class="flash-messages">
+                {% for category, message in messages %}
+                    <div class="flash flash-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        {% endwith %}
+
+        <div class="stats-container">
+            <div class="stat-card">
+                <h3>總病患數</h3>
+                <p class="stat-number">{{ total_patients }}</p>
+                <p class="stat-sub">本週新增: {{ recent_patients }}</p>
+            </div>
+            <div class="stat-card">
+                <h3>問答互動</h3>
+                <p class="stat-number">{{ total_qa_interactions }}</p>
+                <p class="stat-sub">本週新增: {{ recent_qa_interactions }}</p>
+            </div>
+            <div class="stat-card">
+                <h3>諮詢完成數</h3>
+                <p class="stat-number">{{ total_consultations }}</p>
+                <p class="stat-label">已完成諮詢摘要的病患數</p>
+            </div>
+        </div>
+
+        <div class="patients-list">
+            <h2>病患列表</h2>
+            {% if patients %}
+                <table class="patients-table">
+                    <thead>
+                        <tr>
+                            <th>姓名</th>
+                            <th>年齡</th>
+                            <th>性別</th>
+                            <th>手術</th>
+                            <th>諮詢狀態</th>
+                            <th>最近互動</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for patient in patients %}
+                        <tr>
+                            <td>{{ patient.name }}</td>
+                            <td>{{ patient.age }}</td>
+                            <td>{{ patient.sex }}</td>
+                            <td>{{ patient.operation }}</td>
+                            <td>
+                                {% set chats = patient_chats.get(patient.id, []) %}
+                                {% set has_summary = false %}
+                                {% for chat in chats %}
+                                    {% if chat.message_type == 'summary' %}
+                                        {% set has_summary = true %}
+                                    {% endif %}
+                                {% endfor %}
+                                {% if has_summary %}
+                                    <span class="message-type type-summary">已完成</span>
+                                {% else %}
+                                    <span class="message-type type-chat">進行中</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ patient.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                            <td>
+                                <a href="{{ url_for('patient_detail', id=patient.id) }}" class="view-btn">查看詳情</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p class="no-data">目前沒有病患資料</p>
+            {% endif %}
+        </div>
+
+        {% if all_chats %}
+        <div class="debug-section">
+            <h2>最近諮詢記錄</h2>
+            <table class="chat-table">
+                <thead>
+                    <tr>
+                        <th>病患</th>
+                        <th>類型</th>
+                        <th>內容</th>
+                        <th>時間</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for chat in all_chats[:20] %}
+                    <tr>
+                        {% set patient = patients|selectattr('id', 'eq', chat.patient_id)|first %}
+                        <td>{{ patient.name if patient else '未知' }}</td>
+                        <td>
+                            <span class="message-type type-{{ chat.message_type }}">
+                                {% if chat.message_type == 'chat' %}問答
+                                {% elif chat.message_type == 'summary' %}總結
+                                {% elif chat.message_type == 'user' %}病患
+                                {% else %}系統
+                                {% endif %}
+                            </span>
+                        </td>
+                        <td>
+                            {% if chat.message_type == 'chat' %}
+                                <pre>Q: {{ chat.message }}</pre>
+                                <pre>A: {{ chat.response }}</pre>
+                            {% elif chat.message_type == 'summary' %}
+                                <pre>{{ chat.response }}</pre>
+                            {% else %}
+                                <pre>{{ chat.message or chat.response }}</pre>
+                            {% endif %}
+                        </td>
+                        <td>{{ chat.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+    </div>
+</body>
+</html>

@@ -1,6 +1,7 @@
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin, LoginManager
 from datetime import datetime
+import re
 
 # Initialize SQLAlchemy
 db = SQLAlchemy()
@@ -40,6 +41,24 @@ class ChatHistory(db.Model):
     response = db.Column(db.Text)  # API response
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     message_type = db.Column(db.String(10))  # 'user' or 'bot'
+
+    def sanitize_text(self, text):
+        if not text:
+            return None
+        # Remove any non-printable characters
+        text = ''.join(char for char in text if char.isprintable())
+        # Replace special quotes and dashes
+        text = re.sub(r'[""'']', '"', text)
+        text = re.sub(r'[–—]', '-', text)
+        return text
+
+    def __init__(self, **kwargs):
+        # Sanitize message and response before saving
+        if 'message' in kwargs:
+            kwargs['message'] = self.sanitize_text(kwargs['message'])
+        if 'response' in kwargs:
+            kwargs['response'] = self.sanitize_text(kwargs['response'])
+        super(ChatHistory, self).__init__(**kwargs)
 
 def init_login_manager(app):
     login_manager.init_app(app)
