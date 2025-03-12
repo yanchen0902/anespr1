@@ -26,8 +26,8 @@ app.config['DEBUG'] = True  # Enable debug mode
 
 # Configure SQLAlchemy based on environment
 if os.getenv('GAE_ENV', '').startswith('standard'):
-    # Running on App Engine, use Cloud SQL
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:anespr123@/patients?unix_socket=/cloudsql/anespr1-asia-east:asia-east1:anespr1'
+    # Running on App Engine, use Cloud SQL with unix socket
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:anespr123@/patients?unix_socket=/cloudsql/anespr1-asia-east:asia-east1:anespr1&charset=utf8mb4'
 else:
     # Running locally, use SQLite
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///patients.db'
@@ -107,6 +107,15 @@ def save_chat_history(patient_id, message, response, message_type='chat'):
         if message_type not in ['chat', 'user', 'bot', 'summary']:
             raise ValueError(f"Invalid message type: {message_type}")
             
+        # Log the save attempt for debugging
+        logger.info(f"Saving chat history: patient_id={patient_id}, type={message_type}")
+        if message:
+            logger.info(f"Message size: {len(message)} characters")
+            logger.info(f"Message preview: {message[:100]}...")
+        if response:
+            logger.info(f"Response size: {len(response)} characters")
+            logger.info(f"Response preview: {response[:100]}...")
+            
         # Create chat history entry
         chat_entry = ChatHistory(
             patient_id=patient_id,
@@ -120,9 +129,9 @@ def save_chat_history(patient_id, message, response, message_type='chat'):
         try:
             db.session.add(chat_entry)
             db.session.commit()
-            logger.info(f"Chat history saved for patient {patient_id}: type={message_type}")
+            logger.info(f"Chat history saved successfully")
         except Exception as e:
-            logger.error(f"Error saving chat history: {str(e)}", exc_info=True)
+            logger.error(f"Database error saving chat history: {str(e)}", exc_info=True)
             db.session.rollback()
             raise
             
@@ -324,14 +333,21 @@ def get_bot_response(message, patient_info):
         response = model.generate_content(context)
         
         if response and response.text:
-            # Save unformatted response to chat history
+            # Save unformatted response to chat history with explicit transaction
             try:
+                # Log response size and content for debugging
+                logger.info(f"Response size: {len(response.text)} characters")
+                logger.info(f"Response content: {response.text[:100]}...")  # Log first 100 chars
+                
+                # Save combined Q&A as one chat entry
+                db.session.begin_nested()  # Create a savepoint
                 save_chat_history(
                     patient_id=patient_id,
-                    message=message,
-                    response=response.text,
+                    message=message,  # User's question
+                    response=response.text,  # API's response
                     message_type='chat'  # Use 'chat' type for Q&A interactions
                 )
+                db.session.commit()
                 logger.info(f"Chat Q&A saved for patient {patient_id}")
             except Exception as e:
                 logger.error(f"Error saving chat history: {str(e)}", exc_info=True)
@@ -512,8 +528,15 @@ def chat():
                 response = handle_patient_info(user_id, current_step, message)
                 # Save form flow messages with user/bot type
                 if patient_id:
-                    save_chat_history(patient_id, message, None, 'user')
-                    save_chat_history(patient_id, None, response, 'bot')
+                    try:
+                        db.session.begin_nested()  # Create savepoint
+                        save_chat_history(patient_id, message, None, 'user')
+                        save_chat_history(patient_id, None, response, 'bot')
+                        db.session.commit()
+                        logger.info(f"Form flow messages saved for patient {patient_id}")
+                    except Exception as e:
+                        logger.error(f"Error saving form flow messages: {str(e)}", exc_info=True)
+                        db.session.rollback()
                 return jsonify({'response': response})
             except Exception as e:
                 logger.error(f"Error in handle_patient_info: {str(e)}", exc_info=True)
@@ -541,7 +564,6 @@ def chat():
             logger.error(f"Error in chat endpoint: {str(e)}", exc_info=True)
             db.session.rollback()
             return jsonify({'error': str(e)}), 500
-
     except Exception as e:
         logger.error(f"Error in chat endpoint: {str(e)}", exc_info=True)
         return jsonify({'error': str(e)}), 500
