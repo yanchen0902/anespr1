@@ -80,25 +80,7 @@ questions = {
     "worry": "您最擔心什麼？您可以點選或輸入您的擔憂。如果沒有特別擔心的，請點選「沒有特別擔心」。"
 }
 
-# 麻醉相關資訊和建議 - Preserved from original app_tocloud2.py
-anesthesia_info = {
-    "全身麻醉": {
-        "描述": "全身麻醉會讓您在手術過程中完全睡著",
-        "準備事項": [
-            "手術前6-8小時禁食",
-            "手術前24小時內避免吸菸",
-            "告知醫師目前服用的所有藥物"
-        ]
-    },
-    "區域麻醉": {
-        "描述": "區域麻醉會使身體特定部位失去知覺",
-        "準備事項": [
-            "依據手術類型可能需要禁食",
-            "大多數藥物可以照常服用",
-            "遵循麻醉醫師的具體指示"
-        ]
-    }
-}
+
 
 def save_chat_history(patient_id, message, response, message_type='chat'):
     """Save chat history to database"""
@@ -269,49 +251,57 @@ def handle_patient_info(user_id, step, message):
         raise
 
 def generate_summary(info):
-    """Generate a markdown-formatted summary of patient information"""
-    summary = "## 您提供的資訊摘要\n\n"
-    summary += f"* **姓名**：{info.get('name', '未提供')}\n"
-    summary += f"* **年齡**：{info.get('age', '未提供')}歲\n"
-    summary += f"* **性別**：{info.get('sex', '未提供')}\n"
-    summary += f"* **預定手術**：{info.get('operation', '未提供')}\n"
+    """Generate a summary of patient information"""
+    summary = "<h2>您提供的資訊摘要</h2>"
+    summary += "<ul>"
+    summary += f"<li><strong>姓名</strong>：{info.get('name', '未提供')}</li>"
+    summary += f"<li><strong>年齡</strong>：{info.get('age', '未提供')}歲</li>"
+    summary += f"<li><strong>性別</strong>：{info.get('sex', '未提供')}</li>"
+    summary += f"<li><strong>預定手術</strong>：{info.get('operation', '未提供')}</li>"
     
     cfs = "可以自行外出" if info.get('cfs') == "是" else "需要他人協助"
-    summary += f"* **行動能力**：{cfs}\n"
+    summary += f"<li><strong>行動能力</strong>：{cfs}</li>"
     
     medical_history = info.get('medical_history', '無')
     if medical_history in ["沒有", "無"]:
         medical_history = "無特殊病史"
-    summary += f"* **病史**：{medical_history}\n"
+    summary += f"<li><strong>病史</strong>：{medical_history}</li>"
     
     worry = info.get('worry', '無特殊擔憂')
     if worry in ["沒有", "無"]:
         worry = "無特殊擔憂"
-    summary += f"* **擔憂**：{worry}\n\n"
+    summary += f"<li><strong>擔憂</strong>：{worry}</li>"
+    summary += "</ul>"
     
     # Add anesthesia info based on operation type
     operation = info.get('operation', '').lower()
     if '全身' in operation:
-        summary += format_anesthesia_info("全身麻醉") + "\n\n"
+        anesthesia_info = format_anesthesia_info("全身麻醉")
+        if anesthesia_info:
+            summary += format_response(anesthesia_info)
     elif any(keyword in operation for keyword in ['局部', '區域', '脊椎']):
-        summary += format_anesthesia_info("區域麻醉") + "\n\n"
+        anesthesia_info = format_anesthesia_info("區域麻醉")
+        if anesthesia_info:
+            summary += format_response(anesthesia_info)
     
     # Add trigger text for showing question buttons
-    summary += "您好！我已經了解您的基本資料了。請問您有什麼關於麻醉的問題嗎？"
+    summary += "<p>您好！我已經了解您的基本資料了。請問您有什麼關於麻醉的問題嗎？</p>"
     
     return summary
 
 def format_anesthesia_info(anesthesia_type):
-    """Format anesthesia information in markdown style"""
+    """Format anesthesia information"""
     info = anesthesia_info.get(anesthesia_type, {})
     if not info:
         return ""
     
-    formatted = f"\n### {anesthesia_type}相關資訊\n\n"
-    formatted += f"{info['描述']}\n\n"
-    formatted += "#### 準備事項：\n"
+    formatted = f"<h3>{anesthesia_type}相關資訊</h3>"
+    formatted += f"<p>{info['描述']}</p>"
+    formatted += "<h4>準備事項：</h4>"
+    formatted += "<ul>"
     for item in info['準備事項']:
-        formatted += f"* {item}\n"
+        formatted += f"<li>{item}</li>"
+    formatted += "</ul>"
     return formatted
 
 def get_bot_response(message, patient_info):
@@ -349,17 +339,14 @@ def get_bot_response(message, patient_info):
                 )
                 db.session.commit()
                 logger.info(f"Chat Q&A saved for patient {patient_id}")
+                
+                # Format and return the response with follow-up prompt
+                formatted_response = format_response(response.text)
+                return f"{formatted_response}\n\n您還有其他關於麻醉的問題嗎？"
             except Exception as e:
                 logger.error(f"Error saving chat history: {str(e)}", exc_info=True)
                 db.session.rollback()
-            
-            # Format the response text
-            formatted_response = format_response(response.text)
-            
-            # Add API response indicator
-            formatted_response = f"API回應：\n{formatted_response}"
-            
-            return formatted_response
+                return "抱歉，系統發生錯誤。請稍後再試。"
         else:
             logger.error("Empty response from model")
             return "抱歉，我現在無法回答您的問題。請稍後再試。"
@@ -374,8 +361,11 @@ def format_response(response):
         # Normalize line endings and ensure proper spacing
         response = response.replace('\r\n', '\n').replace('\r', '\n')
         
-        # Add extra line break before lists for better formatting
-        response = re.sub(r'\n([*-])', r'\n\n\1', response)
+        # Clean up excessive newlines
+        response = re.sub(r'\n\s*\n\s*\n', '\n\n', response)  # Replace 3+ newlines with 2
+        
+        # Fix spacing after colons before actual lists
+        response = re.sub(r'([：:])\s*\n\s*([*-]\s+\S)', r'\1\n\2', response)
         
         # Convert markdown to HTML
         html = markdown(response)
@@ -386,9 +376,12 @@ def format_response(response):
         allowed_attributes = {'a': ['href', 'title']}
         html = bleach.clean(html, tags=allowed_tags, attributes=allowed_attributes)
         
-        # Ensure proper line breaks are preserved
-        html = html.replace('</p><p>', '</p>\n<p>')
-        html = html.replace('</li><li>', '</li>\n<li>')
+        # Clean up HTML spacing
+        html = re.sub(r'>\s+<', '><', html)  # Remove whitespace between tags
+        html = re.sub(r'<p>\s+', '<p>', html)  # Remove leading whitespace in paragraphs
+        html = re.sub(r'\s+</p>', '</p>', html)  # Remove trailing whitespace in paragraphs
+        html = re.sub(r'<li>\s+', '<li>', html)  # Remove leading whitespace in list items
+        html = re.sub(r'\s+</li>', '</li>', html)  # Remove trailing whitespace in list items
         
         return html
     except Exception as e:
@@ -552,11 +545,8 @@ def chat():
             # Add user_id to patient_info for chat history
             patient_info['user_id'] = user_id
             
-            # Get bot response (already includes API response indicator)
+            # Get bot response (includes follow-up prompt)
             response = get_bot_response(message, patient_info)
-            
-            # Add question prompt (response already has API indicator)
-            response = f"{response}\n\n您還有其他關於麻醉的問題嗎？"
             
             return jsonify({'response': response})
             

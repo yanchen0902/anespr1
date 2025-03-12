@@ -78,10 +78,10 @@ h1 {
 
 .message {
     max-width: 80%;
-    padding: 12px 16px;
+    padding: 10px 14px;
     border-radius: 12px;
-    margin: 4px 0;
-    line-height: 1.4;
+    margin: 2px 0;
+    line-height: 1.3;
     word-wrap: break-word;
     white-space: pre-wrap;
 }
@@ -98,6 +98,51 @@ h1 {
     color: #212529;
     align-self: flex-start;
     border-bottom-left-radius: 4px;
+    line-height: 1.2;
+}
+
+.bot-message p {
+    margin: 0;  
+}
+
+.bot-message p + p {
+    margin-top: 4px;  
+}
+
+.bot-message ul, .bot-message ol {
+    margin: 2px 0;
+    padding-left: 16px;
+}
+
+.bot-message li {
+    margin: 0;  
+    line-height: 1.2;
+}
+
+.bot-message li + li {
+    margin-top: 1px;  
+}
+
+.bot-message h1, .bot-message h2, .bot-message h3, .bot-message h4, .bot-message h5, .bot-message h6 {
+    margin: 6px 0 2px;
+    line-height: 1.2;
+}
+
+.bot-message ul:first-child,
+.bot-message ol:first-child,
+.bot-message p:first-child {
+    margin-top: 0;  
+}
+
+.bot-message ul:last-child,
+.bot-message ol:last-child,
+.bot-message p:last-child {
+    margin-bottom: 0;  
+}
+
+.bot-message p:has(+ ul),
+.bot-message p:has(+ ol) {
+    margin-bottom: 2px;
 }
 
 .input-area {
@@ -141,6 +186,8 @@ h1 {
 .text-input-area {
     display: flex;
     gap: 8px;
+    position: relative;
+    padding-right: 100px;  
 }
 
 .text-input-area input {
@@ -165,6 +212,11 @@ h1 {
     font-size: 14px;
     cursor: pointer;
     transition: background-color 0.2s ease;
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 80px;  
 }
 
 .text-input-area button:hover {
@@ -172,22 +224,8 @@ h1 {
 }
 
 /* API Response Styling */
-.api-header {
-    color: #2c3e50;
-    font-weight: bold;
-    margin-bottom: 8px;
-    padding: 4px 8px;
-    background: #e3f2fd;
-    border-radius: 4px;
-    display: inline-block;
-}
-
-.api-content {
-    margin: 8px 0;
-    padding: 8px;
-    background: #fff;
-    border-radius: 4px;
-    border-left: 3px solid #2196f3;
+.api-header, .api-content {
+    display: none;
 }
 
 .question-prompt {
