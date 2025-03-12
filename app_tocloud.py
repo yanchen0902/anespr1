@@ -272,37 +272,13 @@ def generate_summary(info):
         worry = "無特殊擔憂"
     summary += f"<li><strong>擔憂</strong>：{worry}</li>"
     summary += "</ul>"
-    
-    # Add anesthesia info based on operation type
-    operation = info.get('operation', '').lower()
-    if '全身' in operation:
-        anesthesia_info = format_anesthesia_info("全身麻醉")
-        if anesthesia_info:
-            summary += format_response(anesthesia_info)
-    elif any(keyword in operation for keyword in ['局部', '區域', '脊椎']):
-        anesthesia_info = format_anesthesia_info("區域麻醉")
-        if anesthesia_info:
-            summary += format_response(anesthesia_info)
+
     
     # Add trigger text for showing question buttons
     summary += "<p>您好！我已經了解您的基本資料了。請問您有什麼關於麻醉的問題嗎？</p>"
     
     return summary
 
-def format_anesthesia_info(anesthesia_type):
-    """Format anesthesia information"""
-    info = anesthesia_info.get(anesthesia_type, {})
-    if not info:
-        return ""
-    
-    formatted = f"<h3>{anesthesia_type}相關資訊</h3>"
-    formatted += f"<p>{info['描述']}</p>"
-    formatted += "<h4>準備事項：</h4>"
-    formatted += "<ul>"
-    for item in info['準備事項']:
-        formatted += f"<li>{item}</li>"
-    formatted += "</ul>"
-    return formatted
 
 def get_bot_response(message, patient_info):
     """Get response from Gemini model"""
@@ -561,38 +537,133 @@ def chat():
 @app.route('/self_pay')
 def self_pay():
     """Display self-pay items page"""
+    user_id = request.args.get('user_id')
+    if not user_id or user_id not in session:
+        return "請從諮詢系統進入自費項目表", 400
+    patient_info = session[user_id].get('patient_info', {})
     items = SelfPayItem.query.all()
-    return render_template('self_pay.html', items=items)
+    return render_template('self_pay_form.html', items=items, patient_info=patient_info, user_id=user_id)
 
 @app.route('/submit_self_pay', methods=['POST'])
 def submit_self_pay():
-    """Handle self-pay item submission"""
     try:
         data = request.get_json()
+        if not data:
+            return jsonify({"error": "無效的資料格式"}), 400
+            
         selected_items = data.get('items', [])
         user_id = data.get('user_id')
         
         if not user_id:
-            return jsonify({"error": "No user ID provided"}), 400
+            return jsonify({"error": "請從諮詢系統進入自費項目表"}), 400
             
         patient_id = session.get(f'patient_id_{user_id}')
         if not patient_id:
-            return jsonify({"error": "No patient found"}), 404
+            return jsonify({"error": "請先完成諮詢再選擇自費項目"}), 404
             
-        # Update patient's selected items
         patient = Patient.query.get(patient_id)
-        if patient:
-            patient.self_pay_items = selected_items
+        if not patient:
+            return jsonify({"error": "找不到病人資料"}), 404
+            
+        try:
+            # Delete existing items
+            SelfPayItem.query.filter_by(patient_id=patient_id).delete()
+            
+            # Save new items
+            for item_name in selected_items:
+                price = {
+                    '麻醉深度監測': 1711,
+                    '最適肌張力手術輔助處置': 6500,
+                    '自控式止痛': 6500,
+                    '溫毯': 980,
+                    '止吐藥': 99
+                }.get(item_name)
+                
+                if price is not None:
+                    item = SelfPayItem(
+                        patient_id=patient_id,
+                        item_name=item_name,
+                        price=price,
+                        selected_at=datetime.utcnow()
+                    )
+                    db.session.add(item)
+            
+            # Save a final chat entry to mark completion
+            save_chat_history(
+                patient_id=patient_id,
+                message="自費項目選擇完成",
+                response="感謝您完成諮詢，您可以在管理介面查看完整諮詢記錄。",
+                message_type='chat'
+            )
+            
             db.session.commit()
-            logger.info(f"Updated self-pay items for patient {patient_id}: {selected_items}")
-            return jsonify({"success": True})
-        else:
-            return jsonify({"error": "Patient not found"}), 404
+            # Store success in session for the summary page
+            session['self_pay_success'] = True
+            return jsonify({
+                "success": True,
+                "redirect_url": url_for('consultation_summary', patient_id=patient_id)
+            })
+            
+        except Exception as e:
+            db.session.rollback()
+            app.logger.error(f"Error saving self-pay items: {str(e)}")
+            return jsonify({"error": "儲存失敗，請稍後再試"}), 500
             
     except Exception as e:
-        logger.error(f"Error submitting self-pay items: {str(e)}", exc_info=True)
-        db.session.rollback()
-        return jsonify({"error": "Internal server error"}), 500
+        app.logger.error(f"Error in submit_self_pay: {str(e)}")
+        return jsonify({"error": "系統錯誤，請稍後再試"}), 500
+
+@app.route('/consultation_summary/<int:patient_id>')
+def consultation_summary(patient_id):
+    # Verify that self-pay form was just submitted
+    if not session.pop('self_pay_success', False):
+        return redirect(url_for('index'))
+        
+    try:
+        patient = Patient.query.get_or_404(patient_id)
+        
+        # Get chat history with type='chat' (Q&A only, not form flow)
+        # Following the memory pattern of only showing actual Q&A interactions
+        chat_history = ChatHistory.query.filter(
+            ChatHistory.patient_id == patient_id,
+            ChatHistory.message_type == 'chat'  # Only actual Q&A, not form flow messages
+        ).order_by(ChatHistory.created_at.asc()).all()
+        
+        # Get self-pay items with proper error handling
+        try:
+            self_pay_items = SelfPayItem.query.filter_by(
+                patient_id=patient_id
+            ).order_by(SelfPayItem.selected_at.desc()).all()
+            total_price = sum(item.price for item in self_pay_items)
+        except Exception as e:
+            app.logger.error(f"Error fetching self-pay items: {str(e)}")
+            self_pay_items = []
+            total_price = 0
+            flash('部分自費項目資料載入失敗', 'warning')
+        
+        # Clear session data to stay under cookie size limit (4093 bytes)
+        # Following the memory pattern of only storing essential data
+        try:
+            session_keys = [k for k in session.keys()]
+            for key in session_keys:
+                if key.startswith(f'patient_id_{patient.id}'):
+                    session.pop(key, None)
+        except Exception as e:
+            app.logger.error(f"Error clearing session data: {str(e)}")
+            # Non-critical error, continue without clearing session
+        
+        return render_template(
+            'consultation_summary.html',
+            patient=patient,
+            chat_history=chat_history,
+            self_pay_items=self_pay_items,
+            total_price=total_price,
+            consultation_date=datetime.now()
+        )
+    except Exception as e:
+        app.logger.error(f"Error in consultation_summary: {str(e)}")
+        flash('無法載入諮詢總結，請稍後再試', 'error')
+        return redirect(url_for('index'))
 
 @app.route('/admin/login', methods=['GET', 'POST'])
 def admin_login():

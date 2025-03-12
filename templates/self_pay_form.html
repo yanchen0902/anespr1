@@ -14,13 +14,13 @@
                 預定手術：{{ patient_info.operation }}
             </p>
             
-            <form id="selfPayForm" action="/submit_self_pay" method="POST">
+            <form id="selfPayForm" onsubmit="handleSubmit(event)">
                 <input type="hidden" name="user_id" value="{{ user_id }}">
                 
                 <div class="self-pay-items">
                     <div class="item-card">
                         <div class="item-header">
-                            <input type="checkbox" id="depth_monitor" name="items" value="depth_monitor" 
+                            <input type="checkbox" id="depth_monitor" name="items" value="麻醉深度監測" 
                                    data-price="1711" onchange="updateTotal()">
                             <label for="depth_monitor">麻醉深度監測</label>
                             <span class="price">NT$ 1711</span>
@@ -35,7 +35,7 @@
 
                     <div class="item-card">
                         <div class="item-header">
-                            <input type="checkbox" id="muscle_monitor" name="items" value="muscle_monitor" 
+                            <input type="checkbox" id="muscle_monitor" name="items" value="最適肌張力手術輔助處置" 
                                    data-price="6500" onchange="updateTotal()">
                             <label for="muscle_monitor">最適肌張力手術輔助處置</label>
                             <span class="price">NT$ 6,500</span>
@@ -50,7 +50,7 @@
 
                     <div class="item-card">
                         <div class="item-header">
-                            <input type="checkbox" id="pca" name="items" value="pca" 
+                            <input type="checkbox" id="pca" name="items" value="自控式止痛" 
                                    data-price="6500" onchange="updateTotal()">
                             <label for="pca">自控式止痛</label>
                             <span class="price">NT$ 6,500</span>
@@ -64,7 +64,7 @@
 
                     <div class="item-card">
                         <div class="item-header">
-                            <input type="checkbox" id="warming" name="items" value="warming" 
+                            <input type="checkbox" id="warming" name="items" value="溫毯" 
                                    data-price="980" onchange="updateTotal()">
                             <label for="warming">溫毯</label>
                             <span class="price">NT$ 980</span>
@@ -79,7 +79,7 @@
 
                     <div class="item-card">
                         <div class="item-header">
-                            <input type="checkbox" id="anti_nausea" name="items" value="anti_nausea" 
+                            <input type="checkbox" id="anti_nausea" name="items" value="止吐藥" 
                                    data-price="99" onchange="updateTotal()">
                             <label for="anti_nausea">止吐藥</label>
                             <span class="price">NT$ 99</span>
@@ -107,16 +107,16 @@
     </div>
 
     <script>
+        const prices = {
+            '麻醉深度監測': 1711,
+            '最適肌張力手術輔助處置': 6500,
+            '自控式止痛': 6500,
+            '溫毯': 980,
+            '止吐藥': 99
+        };
+        
         function updateTotal() {
             let total = 0;
-            const prices = {
-                'depth_monitor': 1711,
-                'muscle_monitor': 6500,
-                'pca': 6500,
-                'warming': 980,
-                'anti_nausea': 99
-            };
-            
             const checkboxes = document.querySelectorAll('input[type="checkbox"]:checked');
             checkboxes.forEach(checkbox => {
                 const itemPrice = prices[checkbox.value] || 0;
@@ -125,21 +125,71 @@
             document.getElementById('total').textContent = total.toLocaleString();
         }
 
-        // 根據病人資訊自動勾選建議項目
+        function handleSubmit(event) {
+            event.preventDefault();
+            const form = event.target;
+            const selectedItems = [];
+            const checkboxes = form.querySelectorAll('input[type="checkbox"]:checked');
+            
+            // Show loading state
+            const submitButton = form.querySelector('button[type="submit"]');
+            const originalText = submitButton.textContent;
+            submitButton.textContent = '處理中...';
+            submitButton.disabled = true;
+            
+            checkboxes.forEach(checkbox => {
+                selectedItems.push(checkbox.value);
+            });
+
+            fetch('/submit_self_pay', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    items: selectedItems,
+                    user_id: form.querySelector('input[name="user_id"]').value
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success && data.redirect_url) {
+                    // Add a small delay to show success message
+                    submitButton.textContent = '已儲存，正在導向總結頁面...';
+                    setTimeout(() => {
+                        window.location.href = data.redirect_url;
+                    }, 1000);
+                } else {
+                    submitButton.textContent = originalText;
+                    submitButton.disabled = false;
+                    alert(data.error || '儲存失敗，請稍後再試');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                submitButton.textContent = originalText;
+                submitButton.disabled = false;
+                alert('儲存失敗，請稍後再試');
+            });
+        }
+
+        // Auto-select items based on patient info
         window.onload = function() {
             const patientInfo = {{ patient_info|tojson|safe }};
             
-            // 年齡>50歲，建議麻醉深度監測
             if (patientInfo.age > 50) {
                 document.getElementById('depth_monitor').checked = true;
             }
             
-            // CFS>4，建議肌張力監測
             if (patientInfo.cfs && patientInfo.cfs.includes('>4')) {
                 document.getElementById('muscle_monitor').checked = true;
             }
             
-            // 根據擔心項目建議
             if (patientInfo.worry) {
                 const worry = patientInfo.worry.toLowerCase();
                 if (worry.includes('痛')) {

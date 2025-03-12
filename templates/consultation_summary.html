@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>諮詢總結</title>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .summary-container {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .thank-you {
+            text-align: center;
+            color: #2563eb;
+            margin-bottom: 30px;
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 15px;
+            border: 1px solid #e5e7eb;
+            border-radius: 4px;
+        }
+        .section-title {
+            color: #1d4ed8;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #93c5fd;
+        }
+        .chat-item {
+            margin: 10px 0;
+            padding: 10px;
+            background: #f3f4f6;
+            border-radius: 4px;
+        }
+        .chat-question {
+            color: #1f2937;
+            font-weight: bold;
+            white-space: pre-wrap;
+        }
+        .chat-response {
+            color: #4b5563;
+            margin-top: 5px;
+            white-space: pre-wrap;
+        }
+        .self-pay-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .total {
+            margin-top: 15px;
+            text-align: right;
+            font-weight: bold;
+        }
+        .print-button {
+            display: block;
+            width: 200px;
+            margin: 20px auto;
+            padding: 10px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            text-align: center;
+            text-decoration: none;
+        }
+        .print-button:hover {
+            background: #1d4ed8;
+        }
+        .flash-messages {
+            margin-bottom: 20px;
+        }
+        .flash {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+        }
+        .flash.error {
+            background-color: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fca5a5;
+        }
+        .flash.warning {
+            background-color: #fef3c7;
+            color: #92400e;
+            border: 1px solid #fcd34d;
+        }
+        .flash.success {
+            background-color: #dcfce7;
+            color: #166534;
+            border: 1px solid #86efac;
+        }
+        @media print {
+            .print-button, .flash-messages {
+                display: none;
+            }
+            .summary-container {
+                box-shadow: none;
+                margin: 0;
+            }
+            .section {
+                break-inside: avoid;
+            }
+            .chat-item {
+                break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="summary-container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            <div class="flash-messages">
+                {% for category, message in messages %}
+                    <div class="flash {{ category }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        {% endwith %}
+
+        <div class="thank-you">
+            <h1>感謝您的諮詢</h1>
+            <p>以下是您的諮詢紀錄和自費項目選擇</p>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">病人資料</h2>
+            <p>姓名：{{ patient.name }}</p>
+            <p>預定手術：{{ patient.operation }}</p>
+            <p>年齡：{{ patient.age }}</p>
+            <p>諮詢日期：{{ consultation_date.strftime('%Y-%m-%d %H:%M') }}</p>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">諮詢重點摘要</h2>
+            {% for chat in chat_history %}
+                <div class="chat-item">
+                    <div class="chat-question">{{ chat.message }}</div>
+                    <div class="chat-response">{{ chat.response }}</div>
+                </div>
+            {% endfor %}
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">自費項目選擇</h2>
+            {% if self_pay_items %}
+                {% for item in self_pay_items %}
+                    <div class="self-pay-item">
+                        <span>{{ item.item_name }}</span>
+                        <span>NT$ {{ "{:,.0f}".format(item.price) }}</span>
+                    </div>
+                {% endfor %}
+                <div class="total">
+                    總計：NT$ {{ "{:,.0f}".format(total_price) }}
+                </div>
+            {% else %}
+                <p>未選擇任何自費項目</p>
+            {% endif %}
+        </div>
+
+        <button onclick="window.print()" class="print-button">列印總結</button>
+    </div>
+</body>
+</html>
