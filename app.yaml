@@ -2,14 +2,14 @@ runtime: python39
 entrypoint: gunicorn -b :$PORT app_tocloud:app
 
 env_variables:
-  DATABASE_URL: "mysql+pymysql://root:anespr123@/patients?unix_socket=/cloudsql/anespr1-asia-east:asia-east1:anespr1"
-  GOOGLE_CLOUD_PROJECT: "anespr1-asia-east"
-  SECRET_KEY: "782a1e73cc19b56e0cfe1ac536f4efff543c7be8b70c6ad18d7fcff9dcacd57b"
-  GOOGLE_API_KEY: "AIzaSyCWfpd5kIDmmrKP66gAvDV7uoE-nX2p-w8"
-  DB_USER: "root"
-  DB_PASS: "anespr123"
-  DB_NAME: "patients"
-  CLOUD_SQL_CONNECTION_NAME: "anespr1-asia-east:asia-east1:anespr1"
+  DATABASE_URL: ${DATABASE_URL}
+  GOOGLE_CLOUD_PROJECT: ${GOOGLE_CLOUD_PROJECT}
+  SECRET_KEY: ${SECRET_KEY}
+  GOOGLE_API_KEY: ${GOOGLE_API_KEY}
+  DB_USER: ${DB_USER}
+  DB_PASS: ${DB_PASS}
+  DB_NAME: ${DB_NAME}
+  CLOUD_SQL_CONNECTION_NAME: ${CLOUD_SQL_CONNECTION_NAME}
 
 instance_class: F1
 
