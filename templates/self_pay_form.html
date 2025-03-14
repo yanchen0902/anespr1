@@ -90,6 +90,21 @@
                             - 有術後噁心嘔吐病史的患者
                         </p>
                     </div>
+
+                    <div class="item-card">
+                        <div class="item-header">
+                            <input type="checkbox" id="brain_oxygen" name="items" value="腦血氧貼片" 
+                                   data-price="15000" onchange="updateTotal()">
+                            <label for="brain_oxygen">腦血氧貼片</label>
+                            <span class="price">NT$ 15,000</span>
+                        </div>
+                        <p class="item-description">
+                            監測腦部血氧濃度，降低腦部缺氧風險，適合：
+                            - 腦部及頸部手術
+                            - 心臟血管手術
+                            - 高齡患者
+                        </p>
+                    </div>
                 </div>
 
                 <div class="total-section">
@@ -112,7 +127,8 @@
             '最適肌張力手術輔助處置': 6500,
             '自控式止痛': 6500,
             '溫毯': 980,
-            '止吐藥': 99
+            '止吐藥': 99,
+            '腦血氧貼片': 15000,
         };
         
         function updateTotal() {

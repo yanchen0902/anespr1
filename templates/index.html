@@ -5,6 +5,44 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>麻醉諮詢助手 - 您的手術安心夥伴</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        @keyframes blink {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        .voice-controls {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+            justify-content: center;
+        }
+        .voice-button {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 5px 10px;
+            border: none;
+            border-radius: 15px;
+            background-color: #f0f0f0;
+            color: #333;
+            font-size: 12px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .voice-button:hover {
+            background-color: #e0e0e0;
+        }
+        .voice-button.recording {
+            background-color: #ffdddd;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+    </style>
 </head>
 <body>
     <div class="container">
@@ -31,6 +69,9 @@
                 <a href="https://www.hch.gov.tw/?aid=503&pid=0&page_name=detail&iid=70" target="_blank" class="info-button">
                     <span class="emoji">🤢</span> 預防噁心嘔吐
                 </a>
+                <a href="https://ct.org.tw/html/news/3-3.php?cat=43&article=1392992" target="_blank" class="info-button">
+                    <span class="emoji">🧪</span> 腦血氧監測
+                </a>
             </div>
         </div>
         <div class="chat-container">
@@ -44,6 +85,16 @@
 我們會謹慎保護您的個人資料，請放心告訴我。</div>
             </div>
             <div class="input-area">
+                <div class="voice-controls">
+                    <button id="voiceInputBtn" class="voice-button">
+                        <span class="emoji">🎤</span> 語音輸入
+                    </button>
+                    <button id="toggleSpeakBtn" class="voice-button">
+                        <span class="emoji">🔊</span> 語音回應
+                    </button>
+                </div>
+                
+                <!-- All button groups at the same position in the DOM -->
                 <div id="sex-buttons" style="display: none;" class="button-group">
                     <button onclick="selectSex('男')" class="option-button">
                         <span class="emoji">👨</span> 男
@@ -58,7 +109,7 @@
                         <span class="emoji">🚶</span> 是，可以自行外出
                     </button>
                     <button onclick="selectCFS('否')" class="option-button">
-                        <span class="emoji">🦽</span> 否，需要他人協助
+                        <span class="emoji">🛌</span> 否，需要他人協助
                     </button>
                 </div>
                 
@@ -115,9 +166,10 @@
                         <span class="emoji">👥</span> 個人建議
                     </button>
                 </div>
+                
                 <div class="text-input-area">
                     <input type="text" id="user-input" placeholder="請在此輸入您的回答...">
-                    <button onclick="sendMessage(document.getElementById('user-input').value)">送出</button>
+                    <button onclick="sendMessage(document.getElementById('user-input').value)" class="send-button">送出</button>
                 </div>
             </div>
         </div>
@@ -127,6 +179,108 @@
             <span class="emoji">📝</span> 前往術中麻醉自費需求表
         </button>
     </div>
+    <script>
+        // Voice interaction code
+        const voiceInputBtn = document.getElementById('voiceInputBtn');
+        const toggleSpeakBtn = document.getElementById('toggleSpeakBtn');
+        const userInput = document.getElementById('user-input');
+        let isListening = false;
+        let speakResponses = true;
+
+        // Speech recognition setup
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const recognition = new SpeechRecognition();
+        recognition.lang = 'zh-TW';
+        recognition.continuous = false;
+        recognition.interimResults = false;
+
+        recognition.onresult = (event) => {
+            let transcript = event.results[0][0].transcript;
+            
+            // Remove trailing periods, commas, and other punctuation that might be automatically added
+            transcript = transcript.replace(/[。，,.!?！？]+$/, '');
+            
+            userInput.value = transcript;
+            sendMessage(transcript);
+        };
+
+        recognition.onend = () => {
+            isListening = false;
+            voiceInputBtn.classList.remove('recording');
+        };
+
+        recognition.onerror = (event) => {
+            console.error('Speech recognition error:', event.error);
+            isListening = false;
+            voiceInputBtn.classList.remove('recording');
+            if (event.error === 'not-allowed') {
+                alert('請允許使用麥克風以啟用語音輸入功能。');
+            }
+        };
+
+        voiceInputBtn.addEventListener('click', () => {
+            if (!isListening) {
+                recognition.start();
+                isListening = true;
+                voiceInputBtn.classList.add('recording');
+            } else {
+                recognition.stop();
+                isListening = false;
+                voiceInputBtn.classList.remove('recording');
+            }
+        });
+
+        // Text-to-speech setup
+        const speak = (text) => {
+            if (!speakResponses) return;
+            
+            // Remove markdown and HTML tags for cleaner speech
+            let cleanText = text.replace(/\*\*/g, '')
+                               .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+                               .replace(/<[^>]+>/g, '')
+                               .replace(/\n/g, ' ');
+            
+            // Handle numbers in Chinese text to prevent period marks
+            // Replace sequences of digits with spaces between each digit
+            cleanText = cleanText.replace(/(\d+)/g, (match) => {
+                return match.split('').join(' ');
+            });
+            
+            const utterance = new SpeechSynthesisUtterance(cleanText);
+            utterance.lang = 'zh-TW';
+            utterance.rate = 1.0;
+            utterance.pitch = 1.0;
+            speechSynthesis.speak(utterance);
+        };
+
+        toggleSpeakBtn.addEventListener('click', () => {
+            speakResponses = !speakResponses;
+            toggleSpeakBtn.innerHTML = `<span class="emoji">🔊</span> 語音回應：${speakResponses ? '開啟' : '關閉'}`;
+            if (!speakResponses) {
+                speechSynthesis.cancel();
+            }
+        });
+
+        // Override the addMessageToChat function from chat.js to include speech
+        document.addEventListener('DOMContentLoaded', function() {
+            // Store the original function
+            const originalAddMessageToChat = window.addMessageToChat;
+            
+            // Override with our enhanced version
+            window.addMessageToChat = function(role, message) {
+                // Call the original function first
+                originalAddMessageToChat(role, message);
+                
+                // Add speech for bot messages
+                if (role === 'bot' && speakResponses) {
+                    console.log('Speaking bot message:', message.substring(0, 50) + '...');
+                    speak(message);
+                }
+            };
+            
+            console.log('Voice functionality initialized');
+        });
+    </script>
     <script src="{{ url_for('static', filename='js/chat.js') }}"></script>
 </body>
 </html>

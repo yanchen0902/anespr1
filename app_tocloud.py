@@ -392,7 +392,7 @@ def create_context(message, patient_info):
    - 說明麻醉過程中的感受
 
 2. 術前準備相關問題:
-   - 強調禁食時間要求（固體食物6小時、清水2小時）
+   - 強調禁食時間要求（固體食物8小時、清水2小時）
    - 說明需要停用的藥物（如：抗凝血劑）
    - 建議戒菸時間和重要性
    - 提醒術前注意事項
@@ -422,6 +422,8 @@ def create_context(message, patient_info):
 - 怕冷或手術>1小時: 建議使用溫毯並解釋保溫重要性
 - 失眠或精神緊張: 建議使用麻醉深度監測系統
 - 體弱或年長: 建議使用麻醉深度監測系統和最適肌張力手術輔助處置
+- 心臟手術: 建議使用腦血氧貼片
+
 
 病人問題: {message}
 
@@ -538,11 +540,45 @@ def chat():
 def self_pay():
     """Display self-pay items page"""
     user_id = request.args.get('user_id')
-    if not user_id or user_id not in session:
+    if not user_id:
         return "請從諮詢系統進入自費項目表", 400
-    patient_info = session[user_id].get('patient_info', {})
-    items = SelfPayItem.query.all()
-    return render_template('self_pay_form.html', items=items, patient_info=patient_info, user_id=user_id)
+    
+    # Get patient_id from session using the new format
+    patient_id_key = f'patient_id_{user_id}'
+    
+    # Log session data for debugging
+    logger.info(f"Session data in self_pay: {dict(session)}")
+    logger.info(f"Looking for patient_id with key: {patient_id_key}")
+    
+    # Check if patient_id exists in session
+    if patient_id_key not in session:
+        return "找不到病人資料，請重新開始諮詢", 400
+    
+    patient_id = session[patient_id_key]
+    logger.info(f"Found patient_id: {patient_id}")
+    
+    try:
+        # Fetch patient info from database
+        patient = Patient.query.get(patient_id)
+        if not patient:
+            logger.error(f"Patient with ID {patient_id} not found in database")
+            return "找不到病人資料，請重新開始諮詢", 400
+        
+        patient_info = {
+            'name': patient.name,
+            'age': patient.age,
+            'sex': patient.sex,
+            'operation': patient.operation,
+            'cfs': patient.cfs,
+            'worry': patient.worry
+        }
+        
+        items = SelfPayItem.query.all()
+        return render_template('self_pay_form.html', items=items, patient_info=patient_info, user_id=user_id)
+    
+    except Exception as e:
+        logger.error(f"Error in self_pay: {str(e)}")
+        return "發生錯誤，請重新開始諮詢", 500
 
 @app.route('/submit_self_pay', methods=['POST'])
 def submit_self_pay():
@@ -796,10 +832,14 @@ def patient_detail(id):
 
 # Initialize Gemini API
 GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')
+logger.info(f"Using API key from environment: {GOOGLE_API_KEY[:5]}...{GOOGLE_API_KEY[-4:] if GOOGLE_API_KEY else 'None'}")
+
 if not GOOGLE_API_KEY:
+    logger.warning("No API key found in environment variables")
     raise ValueError("No API key found. Please set GOOGLE_API_KEY in your .env file")
 
 try:
+    logger.info("Configuring Gemini API with key")
     genai.configure(api_key=GOOGLE_API_KEY)
     
     # Model configuration

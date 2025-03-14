@@ -22,6 +22,9 @@ function sendMessage(message = '') {
         addMessageToChat('user', message);
     }
 
+    // Hide all buttons before sending message
+    hideAllButtons();
+
     fetch('/chat', {
         method: 'POST',
         headers: {
@@ -85,7 +88,7 @@ function sendMessage(message = '') {
             if ((responseText.includes('病史') || responseText.includes('慢性病')) && 
                 !responseText.includes('資訊摘要')) {
                 showButtons('medical-history-buttons');
-                document.getElementById('user-input').placeholder = '或直接輸入您的病史...';
+                document.getElementById('user-input').placeholder = '請輸入您的病史...';
                 return;
             }
 
@@ -111,15 +114,20 @@ function sendMessage(message = '') {
 }
 
 function selectQuestion(question) {
+    // Hide all buttons before sending question
+    hideAllButtons();
+    
     // Ensure we're in chat mode
     current_step = 'chat';
     sessionStorage.setItem('current_step', current_step);
     
-    // Hide buttons before sending message
-    hideAllButtons();
-    
     // Send the question
     sendMessage(question);
+    
+    // Show question buttons after a short delay
+    setTimeout(() => {
+        showButtons('question-buttons');
+    }, 200);
 }
 
 function hideAllButtons() {
@@ -135,19 +143,26 @@ function hideAllButtons() {
         const element = document.getElementById(id);
         if (element) {
             element.style.display = 'none';
+            element.classList.remove('visible');
         }
     });
+    
+    // Show text input area by default
+    const textInputArea = document.querySelector('.text-input-area');
+    if (textInputArea) {
+        textInputArea.style.display = 'flex';
+    }
 }
 
 function showButtons(buttonId) {
     // First hide everything
     hideAllButtons();
-    hideTextInput();
     
     // Then show the specific button group
     const buttonGroup = document.getElementById(buttonId);
     if (buttonGroup) {
         buttonGroup.style.display = 'flex';
+        buttonGroup.classList.add('visible');
         // Scroll to bottom after showing buttons
         scrollToBottom();
     }
@@ -158,8 +173,10 @@ function showTextInput() {
     hideAllButtons();
     
     // Then show text input
+    const textInputArea = document.querySelector('.text-input-area');
     const userInput = document.getElementById('user-input');
-    if (userInput) {
+    if (textInputArea && userInput) {
+        textInputArea.style.display = 'flex';
         userInput.style.display = 'block';
         userInput.focus();
         // Scroll to bottom after showing input
@@ -168,9 +185,9 @@ function showTextInput() {
 }
 
 function hideTextInput() {
-    const userInput = document.getElementById('user-input');
-    if (userInput) {
-        userInput.style.display = 'none';
+    const textInputArea = document.querySelector('.text-input-area');
+    if (textInputArea) {
+        textInputArea.style.display = 'none';
     }
 }
 
@@ -198,40 +215,37 @@ function selectWorry(worry) {
 }
 
 function startNewPatient() {
-    // Reset current_step
+    // Clear session storage
+    sessionStorage.clear();
+    
+    // Generate new user ID
+    userId = 'user-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+    sessionStorage.setItem('userId', userId);
+    
+    // Reset current step
     current_step = 'initial';
     sessionStorage.setItem('current_step', current_step);
     
     // Clear chat messages
     const chatMessages = document.getElementById('chat-messages');
-    chatMessages.innerHTML = '<div class="message bot-message">您好！我是您的麻醉諮詢助手。為了提供您最適合的建議，請讓我先了解一些基本資訊。</div>';
+    if (chatMessages) {
+        chatMessages.innerHTML = '<div class="message bot-message">您好！我是您的麻醉諮詢助手。\n為了提供您最適合的建議，請讓我先了解一些基本資訊。\n我們會謹慎保護您的個人資料，請放心告訴我。</div>';
+    }
     
     // Hide all buttons
     hideAllButtons();
     
-    // Reset session via API
-    fetch('/reset_session', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest'
-        },
-        body: JSON.stringify({ user_id: userId })
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('Network response was not ok');
-        }
-        return response.json();
-    })
-    .then(data => {
-        // Send initial message to start conversation
-        sendMessage('');
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        addMessageToChat('bot', '抱歉，系統發生錯誤。請重新整理頁面後再試。');
-    });
+    // Show text input
+    showTextInput();
+    
+    // Reset input placeholder
+    const userInput = document.getElementById('user-input');
+    if (userInput) {
+        userInput.placeholder = '請在此輸入您的回答...';
+    }
+    
+    // Send empty message to start new conversation
+    sendMessage();
 }
 
 // Add CSS for icon button and sidebar header
@@ -241,51 +255,45 @@ style.textContent = `
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 15px;
-}
-
-.sidebar-header h3 {
-    margin: 0;
+    padding: 10px;
+    border-bottom: 1px solid #ddd;
 }
 
 .icon-button {
     background: none;
     border: none;
-    padding: 5px;
+    font-size: 24px;
     cursor: pointer;
+    padding: 5px;
     border-radius: 50%;
-    width: 30px;
-    height: 30px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
     transition: background-color 0.3s;
 }
 
 .icon-button:hover {
-    background-color: rgba(0, 0, 0, 0.1);
+    background-color: #f0f0f0;
 }
 
-.icon-button .emoji {
-    font-size: 16px;
-}`;
-
+.emoji {
+    font-style: normal;
+}
+`;
 document.head.appendChild(style);
 
-// Function to handle self-pay transition
 function goToSelfPay() {
-    // Store user ID in session storage
-    sessionStorage.setItem('user_id', userId);
+    // Save current chat state
+    sessionStorage.setItem('current_step', current_step);
     
-    // Redirect to self-pay form
+    // Redirect to self-pay page with user_id parameter
     window.location.href = '/self_pay?user_id=' + userId;
 }
 
 // When page loads, send empty message to get initial greeting
 window.onload = function() {
-    hideAllButtons();
-    sendMessage('');
-}
+    // Send empty message to get initial greeting if this is a new session
+    if (current_step === 'initial') {
+        sendMessage();
+    }
+};
 
 // Add enter key handler for input
 document.getElementById('user-input').addEventListener('keypress', function(e) {
@@ -302,47 +310,40 @@ function addMessageToChat(role, message) {
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${role}-message`;
     
-    // Format message with API response indicator
-    if (role === 'bot' && message.includes('API回應：')) {
-        const [apiResponse, ...otherParts] = message.split('\n\n');
-        const responseContent = apiResponse.replace('API回應：\n', '');
-        const questionPrompt = otherParts.join('\n\n');
-        
-        messageDiv.innerHTML = `
-            <div class="api-header">API回應：</div>
-            <div class="api-content">${responseContent}</div>
-            <div class="question-prompt">${questionPrompt}</div>
-        `;
-    } else {
-        messageDiv.innerHTML = message;
+    // Format API responses
+    if (role === 'bot' && message.includes('API Response')) {
+        messageDiv.classList.add('api-response');
     }
     
+    // Convert markdown links to HTML
+    message = message.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
+    
+    // Convert newlines to <br> tags
+    message = message.replace(/\n/g, '<br>');
+    
+    messageDiv.innerHTML = message;
     chatMessages.appendChild(messageDiv);
-    chatMessages.scrollTop = chatMessages.scrollHeight;
+    
+    // Scroll to bottom
+    scrollToBottom();
 }
 
 // Add CSS for API response formatting
 const apiStyle = document.createElement('style');
 apiStyle.textContent = `
     .api-response {
-        background: #f8f9fa;
-        border-radius: 8px;
-        padding: 12px;
-        margin-bottom: 10px;
-    }
-    .api-header {
-        color: #2c3e50;
-        font-weight: bold;
-        margin-bottom: 8px;
-    }
-    .api-content {
+        background-color: #f8f9fa;
+        border-left: 4px solid #17a2b8;
+        padding: 10px;
+        margin: 10px 0;
+        font-family: monospace;
         white-space: pre-wrap;
-        color: #34495e;
     }
-    .question-prompt {
-        color: #7f8c8d;
-        font-style: italic;
-        margin-top: 10px;
+    
+    .api-response code {
+        background-color: #e9ecef;
+        padding: 2px 4px;
+        border-radius: 4px;
     }
 `;
 document.head.appendChild(apiStyle);
