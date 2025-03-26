@@ -143,7 +143,7 @@
             {% for chat in chat_history %}
                 <div class="chat-item">
                     <div class="chat-question">{{ chat.message }}</div>
-                    <div class="chat-response">{{ chat.response }}</div>
+                    <div class="chat-response">{{ chat.response|safe }}</div>
                 </div>
             {% endfor %}
         </div>

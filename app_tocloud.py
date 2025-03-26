@@ -299,30 +299,22 @@ def get_bot_response(message, patient_info):
         response = model.generate_content(context)
         
         if response and response.text:
-            # Save unformatted response to chat history with explicit transaction
-            try:
-                # Log response size and content for debugging
-                logger.info(f"Response size: {len(response.text)} characters")
-                logger.info(f"Response content: {response.text[:100]}...")  # Log first 100 chars
-                
-                # Save combined Q&A as one chat entry
-                db.session.begin_nested()  # Create a savepoint
-                save_chat_history(
-                    patient_id=patient_id,
-                    message=message,  # User's question
-                    response=response.text,  # API's response
-                    message_type='chat'  # Use 'chat' type for Q&A interactions
-                )
-                db.session.commit()
-                logger.info(f"Chat Q&A saved for patient {patient_id}")
-                
-                # Format and return the response with follow-up prompt
-                formatted_response = format_response(response.text)
-                return f"{formatted_response}\n\n您還有其他關於麻醉的問題嗎？"
-            except Exception as e:
-                logger.error(f"Error saving chat history: {str(e)}", exc_info=True)
-                db.session.rollback()
-                return "抱歉，系統發生錯誤。請稍後再試。"
+            # Format the response first
+            formatted_response = format_response(response.text)
+            
+            # Save combined Q&A as one chat entry with formatted response
+            db.session.begin_nested()  # Create a savepoint
+            save_chat_history(
+                patient_id=patient_id,
+                message=message,  # User's question
+                response=formatted_response,  # Save the formatted response
+                message_type='chat'  # Use 'chat' type for Q&A interactions
+            )
+            db.session.commit()
+            logger.info(f"Chat Q&A saved for patient {patient_id}")
+            
+            # Return the response with follow-up prompt
+            return f"{formatted_response}\n\n您還有其他關於麻醉的問題嗎？"
         else:
             logger.error("Empty response from model")
             return "抱歉，我現在無法回答您的問題。請稍後再試。"
@@ -399,6 +391,7 @@ def create_context(message, patient_info):
 
 3. 麻醉風險相關問題:
    - 根據病人年齡和病史評估ASA分級
+   - 心臟手術ASA分級都屬於4以上
    - 說明個人化的麻醉風險
    - 解釋如何透過自費項目降低風險：
      * 麻醉深度監測：降低術中知曉風險
@@ -665,6 +658,11 @@ def consultation_summary(patient_id):
             ChatHistory.message_type == 'chat'  # Only actual Q&A, not form flow messages
         ).order_by(ChatHistory.created_at.asc()).all()
         
+        # Format responses as HTML if they're not already
+        for entry in chat_history:
+            if entry.response and not entry.response.startswith('<'):
+                entry.response = format_response(entry.response)
+        
         # Get self-pay items with proper error handling
         try:
             self_pay_items = SelfPayItem.query.filter_by(
@@ -796,6 +794,11 @@ def patient_detail(id):
             )
         ).order_by(ChatHistory.created_at).all()
         
+        # Format responses as HTML if they're not already
+        for entry in chat_history:
+            if entry.message_type == 'chat' and entry.response and not entry.response.startswith('<'):
+                entry.response = format_response(entry.response)
+        
         # Group form flow messages by timestamp for better display
         grouped_history = []
         current_group = None
@@ -828,6 +831,129 @@ def patient_detail(id):
     except Exception as e:
         logger.error(f"Error viewing patient details: {str(e)}", exc_info=True)
         flash('Error loading patient details', 'error')
+        return redirect(url_for('admin_dashboard'))
+
+@app.route('/admin/feedback/<int:chat_id>', methods=['POST'])
+@login_required
+def submit_feedback(chat_id):
+    """Handle feedback submission for chat responses"""
+    try:
+        feedback_type = request.form.get('feedback')
+        if feedback_type not in ['like', 'dislike', 'ban']:
+            flash('Invalid feedback type', 'error')
+            return redirect(request.referrer or url_for('admin_dashboard'))
+        
+        chat_entry = ChatHistory.query.get_or_404(chat_id)
+        
+        # Don't allow changing feedback type from 'ban' to prevent accidental unbanning
+        if chat_entry.feedback == 'ban' and feedback_type != 'ban':
+            flash('Cannot modify banned responses', 'error')
+            return redirect(request.referrer or url_for('admin_dashboard'))
+        
+        chat_entry.feedback = feedback_type
+        chat_entry.feedback_at = datetime.now()
+        
+        # If feedback is 'ban', save the response for future reference
+        if feedback_type == 'ban':
+            banned_response = chat_entry.response
+            # TODO: Implement banned response tracking for model improvement
+        
+        db.session.commit()
+        
+        flash('Feedback submitted successfully', 'success')
+        return redirect(request.referrer or url_for('admin_dashboard'))
+    except Exception as e:
+        logger.error(f"Error submitting feedback: {str(e)}", exc_info=True)
+        flash('Error submitting feedback', 'error')
+        return redirect(request.referrer or url_for('admin_dashboard'))
+
+@app.route('/admin/feedback_stats')
+@login_required
+def feedback_stats():
+    """Display feedback statistics for chat responses"""
+    try:
+        # Get overall feedback counts
+        feedback_counts = db.session.query(
+            ChatHistory.feedback, 
+            db.func.count(ChatHistory.id)
+        ).filter(
+            ChatHistory.feedback.isnot(None),
+            ChatHistory.message_type == 'chat'  # Only count Q&A interactions
+        ).group_by(
+            ChatHistory.feedback
+        ).all()
+        
+        # Format the counts for display
+        formatted_counts = {
+            'like': 0,
+            'dislike': 0,
+            'ban': 0,
+            'total': 0
+        }
+        
+        for feedback, count in feedback_counts:
+            if feedback in formatted_counts:
+                formatted_counts[feedback] = count
+                formatted_counts['total'] += count
+        
+        # Calculate feedback percentages
+        if formatted_counts['total'] > 0:
+            formatted_counts['like_percent'] = round((formatted_counts['like'] / formatted_counts['total']) * 100, 1)
+            formatted_counts['dislike_percent'] = round((formatted_counts['dislike'] / formatted_counts['total']) * 100, 1)
+            formatted_counts['ban_percent'] = round((formatted_counts['ban'] / formatted_counts['total']) * 100, 1)
+        else:
+            formatted_counts['like_percent'] = 0
+            formatted_counts['dislike_percent'] = 0
+            formatted_counts['ban_percent'] = 0
+        
+        # Get feedback trends (last 7 days)
+        seven_days_ago = datetime.now() - timedelta(days=7)
+        daily_feedback = db.session.query(
+            db.func.date(ChatHistory.feedback_at).label('date'),
+            ChatHistory.feedback,
+            db.func.count(ChatHistory.id)
+        ).filter(
+            ChatHistory.feedback.isnot(None),
+            ChatHistory.message_type == 'chat',
+            ChatHistory.feedback_at >= seven_days_ago
+        ).group_by(
+            'date',
+            ChatHistory.feedback
+        ).order_by('date').all()
+        
+        # Format daily feedback for display
+        feedback_trends = {}
+        for date, feedback, count in daily_feedback:
+            if date not in feedback_trends:
+                feedback_trends[date] = {'like': 0, 'dislike': 0, 'ban': 0}
+            feedback_trends[date][feedback] = count
+        
+        # Get recent feedback entries with more details
+        recent_feedback = ChatHistory.query.filter(
+            ChatHistory.feedback.isnot(None),
+            ChatHistory.message_type == 'chat'
+        ).order_by(
+            ChatHistory.feedback_at.desc()
+        ).limit(20).all()
+        
+        # Get patient info and enrich feedback entries
+        for entry in recent_feedback:
+            patient = Patient.query.get(entry.patient_id)
+            entry.patient_name = patient.name if patient else "Unknown"
+            entry.patient_age = patient.age if patient else None
+            entry.feedback_age = (datetime.now() - entry.feedback_at).days
+            # Format the response using the same function as chat
+            entry.response = format_response(entry.response)
+        
+        return render_template(
+            'feedback_stats.html',
+            counts=formatted_counts,
+            recent_feedback=recent_feedback,
+            feedback_trends=feedback_trends
+        )
+    except Exception as e:
+        logger.error(f"Error viewing feedback stats: {str(e)}", exc_info=True)
+        flash('Error loading feedback statistics', 'error')
         return redirect(url_for('admin_dashboard'))
 
 # Initialize Gemini API

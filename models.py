@@ -41,6 +41,8 @@ class ChatHistory(db.Model):
     response = db.Column(db.Text)  # API response
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     message_type = db.Column(db.String(10))  # 'user' or 'bot'
+    feedback = db.Column(db.String(10), default=None)  # 'like', 'dislike', or 'ban'
+    feedback_at = db.Column(db.DateTime, default=None)  # When feedback was given
 
     def sanitize_text(self, text):
         if not text:

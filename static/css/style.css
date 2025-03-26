@@ -935,10 +935,24 @@ h1 {
 }
 
 .stats-container {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    display: flex;
+    flex-direction: column;
     gap: 20px;
+}
+
+.header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     margin-bottom: 30px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #eee;
+}
+
+.content-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
 }
 
 .stat-card {
@@ -1062,6 +1076,20 @@ h1 {
     white-space: pre-wrap;
 }
 
+.chat-response p, .chat-answer p, .summary p {
+    margin-bottom: 1em;
+}
+
+.chat-response ul, .chat-answer ul, .summary ul,
+.chat-response ol, .chat-answer ol, .summary ol {
+    margin-bottom: 1em;
+    padding-left: 1.5em;
+}
+
+.chat-response li, .chat-answer li, .summary li {
+    margin-bottom: 0.5em;
+}
+
 .self-pay-item {
     display: flex;
     justify-content: space-between;
@@ -1155,4 +1183,154 @@ button:disabled {
     font-size: 13px;
     pointer-events: none;
     z-index: 2; /* Ensure it appears above the input */
+}
+
+/* Patient Detail Page Chat Styles */
+.chat-entry {
+    margin-bottom: 20px;
+    padding: 15px;
+    background: #f9fafb;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+}
+
+.chat-qa {
+    margin: 10px 0;
+}
+
+.chat-question {
+    font-weight: bold;
+    margin-bottom: 8px;
+    color: #1f2937;
+}
+
+.chat-answer {
+    color: #4b5563;
+    white-space: pre-wrap;
+    line-height: 1.6;
+}
+
+.message-type {
+    font-size: 0.9em;
+    color: #6b7280;
+    margin-bottom: 10px;
+    font-weight: 500;
+}
+
+.message-time {
+    font-size: 0.8em;
+    color: #9ca3af;
+    margin-top: 10px;
+    text-align: right;
+}
+
+.form-flow {
+    background: #f3f4f6;
+}
+
+.form-message {
+    padding: 8px;
+    margin: 5px 0;
+    border-radius: 4px;
+}
+
+.form-user {
+    background: #e0f2fe;
+    text-align: right;
+}
+
+.form-bot {
+    background: #f3f4f6;
+}
+
+/* Summary styles */
+.summary {
+    line-height: 1.6;
+    white-space: pre-wrap;
+    color: #4b5563;
+}
+
+/* Feedback buttons styling */
+.feedback-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+    justify-content: flex-end;
+}
+
+.feedback-form {
+    display: inline-block;
+}
+
+.feedback-btn {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.feedback-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+}
+
+.like-btn {
+    background-color: #e6f7e6;
+    color: #2e7d32;
+}
+
+.like-btn.active {
+    background-color: #2e7d32;
+    color: #fff;
+}
+
+.dislike-btn {
+    background-color: #feeaea;
+    color: #c62828;
+}
+
+.dislike-btn.active {
+    background-color: #c62828;
+    color: #fff;
+}
+
+.ban-btn {
+    background-color: #fff3e0;
+    color: #e65100;
+}
+
+.ban-btn.active {
+    background-color: #e65100;
+    color: #fff;
+}
+
+.feedback-btn i {
+    margin-right: 4px;
+}
+
+/* Tooltip for feedback buttons */
+.feedback-btn[title]:hover::after {
+    content: attr(title);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 5px 10px;
+    background: rgba(0,0,0,0.8);
+    color: white;
+    border-radius: 4px;
+    font-size: 12px;
+    white-space: nowrap;
+    margin-bottom: 5px;
+    z-index: 10;
+}
+
+.feedback-btn {
+    position: relative;
 }

@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>病人詳細資料 - 麻醉諮詢系統</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         .patient-detail {
             padding: 20px;
@@ -127,6 +128,48 @@
             margin-bottom: 10px;
             text-transform: capitalize;
         }
+        .feedback-buttons {
+            margin-top: 10px;
+            display: flex;
+            gap: 10px;
+        }
+        .feedback-form {
+            display: inline-block;
+        }
+        .feedback-btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .feedback-btn:hover {
+            transform: scale(1.1);
+        }
+        .like-btn {
+            background-color: #dff0d8;
+            color: #3c763d;
+        }
+        .like-btn.active {
+            background-color: #3c763d;
+            color: #fff;
+        }
+        .dislike-btn {
+            background-color: #f2dede;
+            color: #a94442;
+        }
+        .dislike-btn.active {
+            background-color: #a94442;
+            color: #fff;
+        }
+        .ban-btn {
+            background-color: #fcf8e3;
+            color: #8a6d3b;
+        }
+        .ban-btn.active {
+            background-color: #8a6d3b;
+            color: #fff;
+        }
     </style>
 </head>
 <body>
@@ -208,14 +251,34 @@
                             <div class="message-type">問答互動</div>
                             <div class="chat-qa">
                                 <div class="chat-question">{{ entry.message }}</div>
-                                <div class="chat-answer">{{ entry.response }}</div>
+                                <div class="chat-answer">{{ entry.response|safe }}</div>
+                                <div class="feedback-buttons">
+                                    <form action="{{ url_for('submit_feedback', chat_id=entry.id) }}" method="post" class="feedback-form">
+                                        <input type="hidden" name="feedback" value="like">
+                                        <button type="submit" class="feedback-btn like-btn {% if entry.feedback == 'like' %}active{% endif %}" title="讚同此回應">
+                                            <i class="fas fa-thumbs-up"></i> 讚同
+                                        </button>
+                                    </form>
+                                    <form action="{{ url_for('submit_feedback', chat_id=entry.id) }}" method="post" class="feedback-form">
+                                        <input type="hidden" name="feedback" value="dislike">
+                                        <button type="submit" class="feedback-btn dislike-btn {% if entry.feedback == 'dislike' %}active{% endif %}" title="不讚同此回應">
+                                            <i class="fas fa-thumbs-down"></i> 不讚同
+                                        </button>
+                                    </form>
+                                    <form action="{{ url_for('submit_feedback', chat_id=entry.id) }}" method="post" class="feedback-form">
+                                        <input type="hidden" name="feedback" value="ban">
+                                        <button type="submit" class="feedback-btn ban-btn {% if entry.feedback == 'ban' %}active{% endif %}" title="禁用此回應">
+                                            <i class="fas fa-ban"></i> 禁用
+                                        </button>
+                                    </form>
+                                </div>
                             </div>
                             <div class="message-time">{{ entry.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
                         </div>
                     {% elif entry.message_type == 'summary' %}
                         <div class="chat-entry">
                             <div class="message-type">諮詢總結</div>
-                            <div class="summary">{{ entry.response }}</div>
+                            <div class="summary">{{ entry.response|safe }}</div>
                             <div class="message-time">{{ entry.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
                         </div>
                     {% endif %}
