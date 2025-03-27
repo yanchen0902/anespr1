@@ -12,6 +12,7 @@ import re
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user, AnonymousUserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from models import db, User, Patient, SelfPayItem, ChatHistory
+from sqlalchemy import text
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -29,18 +30,49 @@ if os.getenv('GAE_ENV', '').startswith('standard'):
     # Running on App Engine, use Cloud SQL with unix socket
     app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:anespr123@/patients?unix_socket=/cloudsql/anespr1-asia-east:asia-east1:anespr1&charset=utf8mb4'
 else:
-    # Running locally, use SQLite
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///patients.db'
+    # Local development
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:anespr123@localhost/patients'
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SQLALCHEMY_ECHO'] = True  # Enable SQL query logging
+app.secret_key = 'anespr1-secret-key'
 
-# Enhanced session configuration
-app.config['SESSION_COOKIE_SECURE'] = True
-app.config['SESSION_COOKIE_HTTPONLY'] = True
-app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)
-app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', '782a1e73cc19b56e0cfe1ac536f4efff543c7be8b70c6ad18d7fcff9dcacd57b')
+# Initialize SQLAlchemy
+db.init_app(app)
+
+# Initialize login manager
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'admin_login'
+
+# Code to add feedback columns if needed (currently disabled)
+# with app.app_context():
+#     try:
+#         # Check if columns exist
+#         inspector = db.inspect(db.engine)
+#         columns = [column['name'] for column in inspector.get_columns('chat_history')]
+#         
+#         if 'feedback' not in columns:
+#             logger.info("Adding 'feedback' column to chat_history table...")
+#             db.session.execute(text('ALTER TABLE chat_history ADD COLUMN feedback VARCHAR(10)'))
+#             logger.info("Added 'feedback' column successfully")
+#             
+#         if 'feedback_at' not in columns:
+#             logger.info("Adding 'feedback_at' column to chat_history table...")
+#             db.session.execute(text('ALTER TABLE chat_history ADD COLUMN feedback_at DATETIME'))
+#             logger.info("Added 'feedback_at' column successfully")
+#             
+#         db.session.commit()
+#         logger.info("Database migration completed successfully")
+#     except Exception as e:
+#         logger.error(f"Error during database migration: {str(e)}")
+#         db.session.rollback()
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Load environment variables
+load_dotenv()
 
 # Initialize database and login manager
 db.init_app(app)
