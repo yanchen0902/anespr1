@@ -11,7 +11,7 @@ import secrets
 import re
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user, AnonymousUserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
-from models import db, User, Patient, SelfPayItem, ChatHistory
+from models import db, User, Patient, SelfPayItem, ChatHistory, login_manager, init_db
 from sqlalchemy import text
 
 # Configure logging
@@ -24,63 +24,38 @@ load_dotenv()
 app = Flask(__name__)
 app.config['JSON_AS_ASCII'] = False  # Ensure proper UTF-8 handling
 app.config['DEBUG'] = True  # Enable debug mode
-
-# Configure SQLAlchemy based on environment
-if os.getenv('GAE_ENV', '').startswith('standard'):
-    # Running on App Engine, use Cloud SQL with unix socket
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:anespr123@/patients?unix_socket=/cloudsql/anespr1-asia-east:asia-east1:anespr1&charset=utf8mb4'
-else:
-    # Local development
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:anespr123@localhost/patients'
-
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.secret_key = 'anespr1-secret-key'
 
-# Initialize SQLAlchemy
-db.init_app(app)
+# Initialize database
+init_db(app)
 
-# Initialize login manager
-login_manager = LoginManager()
-login_manager.init_app(app)
-login_manager.login_view = 'admin_login'
-
-# Code to add feedback columns if needed (currently disabled)
-# with app.app_context():
-#     try:
-#         # Check if columns exist
-#         inspector = db.inspect(db.engine)
-#         columns = [column['name'] for column in inspector.get_columns('chat_history')]
-#         
-#         if 'feedback' not in columns:
-#             logger.info("Adding 'feedback' column to chat_history table...")
-#             db.session.execute(text('ALTER TABLE chat_history ADD COLUMN feedback VARCHAR(10)'))
-#             logger.info("Added 'feedback' column successfully")
-#             
-#         if 'feedback_at' not in columns:
-#             logger.info("Adding 'feedback_at' column to chat_history table...")
-#             db.session.execute(text('ALTER TABLE chat_history ADD COLUMN feedback_at DATETIME'))
-#             logger.info("Added 'feedback_at' column successfully")
-#             
-#         db.session.commit()
-#         logger.info("Database migration completed successfully")
-#     except Exception as e:
-#         logger.error(f"Error during database migration: {str(e)}")
-#         db.session.rollback()
-
-# Configure logging
-logging.basicConfig(level=logging.INFO)
+# Create database tables if they don't exist
+with app.app_context():
+    try:
+        # Create tables without dropping existing ones
+        db.create_all()
+        logger.info("Database tables checked/created")
+        
+        # Check if admin user exists
+        admin = User.query.filter_by(username='admin').first()
+        if not admin:
+            admin = User(
+                username='admin',
+                password_hash=generate_password_hash('admin123')
+            )
+            db.session.add(admin)
+            db.session.commit()
+            logger.info("Created default admin user")
+        else:
+            logger.info("Admin user already exists")
+    except Exception as e:
+        logger.error(f"Error checking database: {str(e)}")
+        raise
+    
 logger = logging.getLogger(__name__)
 
 # Load environment variables
 load_dotenv()
-
-# Initialize database and login manager
-db.init_app(app)
-
-# Initialize Flask-Login
-login_manager = LoginManager()
-login_manager.init_app(app)
-login_manager.login_view = 'admin_login'  # Update to use admin_login route
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -328,6 +303,7 @@ def get_bot_response(message, patient_info):
         
         # Create context and get response from model
         context = create_context(message, patient_info)
+        model = get_gemini_model()
         response = model.generate_content(context)
         
         if response and response.text:
@@ -454,6 +430,62 @@ def create_context(message, patient_info):
 
 請根據以上資訊，提供專業且易懂的回答。使用markdown格式並加入適當的emoji增添親和力。回答時請依據問題類型(麻醉類型/術前準備/麻醉風險)聚焦於相關重點。"""
     return context
+
+# Initialize Gemini API
+GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')
+logger.info(f"Using API key from environment: {GOOGLE_API_KEY[:5]}...{GOOGLE_API_KEY[-4:] if GOOGLE_API_KEY else 'None'}")
+
+if not GOOGLE_API_KEY:
+    logger.warning("No API key found in environment variables")
+    raise ValueError("No API key found. Please set GOOGLE_API_KEY in your .env file")
+
+# Model configuration
+generation_config = {
+    "temperature": 1,              # Maximum creativity
+    "top_p": 0.95,                # High diversity in responses
+    "top_k": 40,                  # Top-k sampling parameter
+    "max_output_tokens": 8192,     # Increased maximum response length
+}
+
+# Safety settings
+safety_settings = [
+    {
+        "category": "HARM_CATEGORY_HARASSMENT",
+        "threshold": "BLOCK_MEDIUM_AND_ABOVE"
+    },
+    {
+        "category": "HARM_CATEGORY_HATE_SPEECH",
+        "threshold": "BLOCK_MEDIUM_AND_ABOVE"
+    },
+    {
+        "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+        "threshold": "BLOCK_MEDIUM_AND_ABOVE"
+    },
+]
+
+def get_gemini_model():
+    """Get or initialize the Gemini model"""
+    if not hasattr(get_gemini_model, '_model'):
+        try:
+            genai.configure(api_key=GOOGLE_API_KEY)
+            get_gemini_model._model = genai.GenerativeModel(
+                model_name="gemini-2.0-flash",
+                generation_config=generation_config,
+                safety_settings=safety_settings
+            )
+            logger.info("Gemini model initialized successfully")
+        except Exception as e:
+            logger.error(f"Error initializing Gemini model: {str(e)}")
+            raise
+    return get_gemini_model._model
+
+# Initialize model
+try:
+    model = get_gemini_model()
+    logger.info("Gemini model initialized at startup")
+except Exception as e:
+    logger.error(f"Failed to initialize Gemini model at startup: {str(e)}")
+    model = None
 
 @app.route('/')
 def home():
@@ -752,37 +784,32 @@ def admin_login():
 def admin_dashboard():
     """Display admin dashboard"""
     try:
-        # Get all patients with their chat histories
+        # Get all patients with basic info
         patients = Patient.query.order_by(Patient.created_at.desc()).all()
         total_patients = len(patients)
         
-        # Get chat histories with proper message type filtering
-        chat_histories = ChatHistory.query.filter(
-            (ChatHistory.message_type == 'chat') |  # Q&A interactions
-            (ChatHistory.message_type == 'summary') |  # Consultation summaries
-            (ChatHistory.message_type.in_(['user', 'bot']))  # Form flow messages
-        ).order_by(ChatHistory.created_at.desc()).all()
-        
-        # Calculate meaningful statistics
-        total_qa_interactions = len([ch for ch in chat_histories if ch.message_type == 'chat'])
-        total_consultations = len([ch for ch in chat_histories if ch.message_type == 'summary'])
-        
-        # Get recent activity (last 7 days)
+        # Get statistics for Q&A interactions and consultations
         week_ago = datetime.utcnow() - timedelta(days=7)
+        
+        # Count recent patients
         recent_patients = Patient.query.filter(
             Patient.created_at >= week_ago
         ).count()
-        recent_qa_interactions = len([
-            ch for ch in chat_histories 
-            if ch.message_type == 'chat' and ch.created_at >= week_ago
-        ])
         
-        # Group chat histories by patient for better display
-        patient_chats = {}
-        for chat in chat_histories:
-            if chat.patient_id not in patient_chats:
-                patient_chats[chat.patient_id] = []
-            patient_chats[chat.patient_id].append(chat)
+        # Count chat interactions
+        total_qa_interactions = ChatHistory.query.filter(
+            ChatHistory.message_type == 'chat'
+        ).count()
+        
+        recent_qa_interactions = ChatHistory.query.filter(
+            ChatHistory.message_type == 'chat',
+            ChatHistory.created_at >= week_ago
+        ).count()
+        
+        # Count total consultations (summaries)
+        total_consultations = ChatHistory.query.filter(
+            ChatHistory.message_type == 'summary'
+        ).count()
         
         return render_template(
             'admin_dashboard.html',
@@ -791,9 +818,7 @@ def admin_dashboard():
             total_qa_interactions=total_qa_interactions,
             total_consultations=total_consultations,
             recent_patients=recent_patients,
-            recent_qa_interactions=recent_qa_interactions,
-            patient_chats=patient_chats,
-            all_chats=chat_histories
+            recent_qa_interactions=recent_qa_interactions
         )
     except Exception as e:
         logger.error(f"Error in admin dashboard: {str(e)}", exc_info=True)
@@ -987,57 +1012,6 @@ def feedback_stats():
         logger.error(f"Error viewing feedback stats: {str(e)}", exc_info=True)
         flash('Error loading feedback statistics', 'error')
         return redirect(url_for('admin_dashboard'))
-
-# Initialize Gemini API
-GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')
-logger.info(f"Using API key from environment: {GOOGLE_API_KEY[:5]}...{GOOGLE_API_KEY[-4:] if GOOGLE_API_KEY else 'None'}")
-
-if not GOOGLE_API_KEY:
-    logger.warning("No API key found in environment variables")
-    raise ValueError("No API key found. Please set GOOGLE_API_KEY in your .env file")
-
-try:
-    logger.info("Configuring Gemini API with key")
-    genai.configure(api_key=GOOGLE_API_KEY)
-    
-    # Model configuration
-    generation_config = {
-        "temperature": 1,              # Maximum creativity
-        "top_p": 0.95,                # High diversity in responses
-        "top_k": 40,                  # Top-k sampling parameter
-        "max_output_tokens": 8192,     # Increased maximum response length
-    }
-    
-    # Safety settings
-    safety_settings = [
-        {
-            "category": "HARM_CATEGORY_HARASSMENT",
-            "threshold": "BLOCK_MEDIUM_AND_ABOVE"
-        },
-        {
-            "category": "HARM_CATEGORY_HATE_SPEECH",
-            "threshold": "BLOCK_MEDIUM_AND_ABOVE"
-        },
-        {
-            "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-            "threshold": "BLOCK_MEDIUM_AND_ABOVE"
-        },
-        {
-            "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
-            "threshold": "BLOCK_MEDIUM_AND_ABOVE"
-        },
-    ]
-    
-    # Initialize model with configurations
-    model = genai.GenerativeModel(
-        model_name="gemini-2.0-flash-exp",
-        generation_config=generation_config,
-        safety_settings=safety_settings
-    )
-    
-except Exception as e:
-    logger.error(f"Error initializing Gemini API: {str(e)}")
-    raise
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.getenv('PORT', 8080)), debug=True)

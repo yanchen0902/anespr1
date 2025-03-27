@@ -2,12 +2,31 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin, LoginManager
 from datetime import datetime
 import re
+import os
 
 # Initialize SQLAlchemy
 db = SQLAlchemy()
 
 # Initialize Flask-Login
 login_manager = LoginManager()
+
+def init_db(app):
+    """Initialize the database with the given Flask app"""
+    # Configure SQLAlchemy based on environment
+    if os.getenv('GAE_ENV', '').startswith('standard'):
+        # Running on App Engine, use Cloud SQL with unix socket
+        app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:anespr123@/patients?unix_socket=/cloudsql/anespr1-asia-east:asia-east1:anespr1&charset=utf8mb4'
+    else:
+        # Local development - use SQLite
+        sqlite_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'patients.db')
+        app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{sqlite_path}'
+
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    
+    # Initialize extensions
+    db.init_app(app)
+    login_manager.init_app(app)
+    login_manager.login_view = 'admin_login'
 
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
