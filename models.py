@@ -81,6 +81,20 @@ class ChatHistory(db.Model):
             kwargs['response'] = self.sanitize_text(kwargs['response'])
         super(ChatHistory, self).__init__(**kwargs)
 
+class ChatbotEvaluation(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    patient_id = db.Column(db.Integer, db.ForeignKey('patient.id'), nullable=False)
+    evaluated_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    accuracy_score = db.Column(db.Integer, nullable=False)
+    trustworthiness_score = db.Column(db.Integer, nullable=False)
+    empathy_score = db.Column(db.Integer, nullable=False)
+    comments = db.Column(db.Text)
+    evaluated_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Relationships
+    patient = db.relationship('Patient', backref=db.backref('evaluations', lazy=True))
+    evaluator = db.relationship('User', backref=db.backref('evaluations_given', lazy=True))
+
 def init_login_manager(app):
     login_manager.init_app(app)
     login_manager.login_view = 'login'

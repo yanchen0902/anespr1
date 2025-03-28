@@ -11,7 +11,7 @@ import secrets
 import re
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user, AnonymousUserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
-from models import db, User, Patient, SelfPayItem, ChatHistory, login_manager, init_db
+from models import db, User, Patient, SelfPayItem, ChatHistory, login_manager, init_db, ChatbotEvaluation
 from sqlalchemy import text
 
 # Configure logging
@@ -1012,6 +1012,29 @@ def feedback_stats():
         logger.error(f"Error viewing feedback stats: {str(e)}", exc_info=True)
         flash('Error loading feedback statistics', 'error')
         return redirect(url_for('admin_dashboard'))
+
+@app.route('/admin/patient/<int:id>/evaluate', methods=['POST'])
+@login_required
+def evaluate_chatbot(id):
+    try:
+        patient = Patient.query.get_or_404(id)
+        evaluation = ChatbotEvaluation(
+            patient_id=id,
+            evaluated_by=current_user.id,
+            accuracy_score=int(request.form['accuracy']),
+            trustworthiness_score=int(request.form['trustworthiness']),
+            empathy_score=int(request.form['empathy']),
+            comments=request.form.get('comments')
+        )
+        db.session.add(evaluation)
+        db.session.commit()
+        flash('評估已成功提交', 'success')
+    except Exception as e:
+        app.logger.error(f"Error submitting evaluation: {str(e)}")
+        flash('提交評估時發生錯誤', 'error')
+        db.session.rollback()
+    
+    return redirect(url_for('patient_detail', id=id))
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.getenv('PORT', 8080)), debug=True)
