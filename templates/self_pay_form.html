@@ -157,40 +157,49 @@
                 selectedItems.push(checkbox.value);
             });
 
+            // Get the user_id from the hidden input
+            const userId = form.querySelector('input[name="user_id"]').value;
+            if (!userId) {
+                alert('找不到使用者資訊，請重新開始諮詢');
+                submitButton.textContent = originalText;
+                submitButton.disabled = false;
+                return;
+            }
+
             fetch('/submit_self_pay', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
                     items: selectedItems,
-                    user_id: form.querySelector('input[name="user_id"]').value
-                })
+                    user_id: userId
+                }),
+                credentials: 'same-origin'  // Important: send cookies
             })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
+            .then(response => response.json().then(data => ({
+                ok: response.ok,
+                status: response.status,
+                data: data
+            })))
+            .then(({ok, status, data}) => {
+                if (!ok) {
+                    throw new Error(data.error || '儲存失敗，請稍後再試');
                 }
-                return response.json();
-            })
-            .then(data => {
                 if (data.success && data.redirect_url) {
-                    // Add a small delay to show success message
                     submitButton.textContent = '已儲存，正在導向總結頁面...';
                     setTimeout(() => {
                         window.location.href = data.redirect_url;
                     }, 1000);
                 } else {
-                    submitButton.textContent = originalText;
-                    submitButton.disabled = false;
-                    alert(data.error || '儲存失敗，請稍後再試');
+                    throw new Error(data.error || '儲存失敗，請稍後再試');
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
                 submitButton.textContent = originalText;
                 submitButton.disabled = false;
-                alert('儲存失敗，請稍後再試');
+                alert(error.message || '儲存失敗，請稍後再試');
             });
         }
 

@@ -180,7 +180,7 @@
                     <tr>
                         <td>{{ patient.name }}</td>
                         <td>{{ patient.age }}</td>
-                        <td>{{ patient.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td>{{ format_local_time(patient.created_at) }}</td>
                         <td>
                             <a href="{{ url_for('patient_detail', id=patient.id) }}" class="view-btn">查看詳情</a>
                         </td>

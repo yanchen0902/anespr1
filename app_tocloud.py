@@ -13,6 +13,7 @@ from flask_login import LoginManager, UserMixin, login_user, login_required, log
 from werkzeug.security import generate_password_hash, check_password_hash
 from models import db, User, Patient, SelfPayItem, ChatHistory, login_manager, init_db, ChatbotEvaluation
 from sqlalchemy import text
+import pytz
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -88,6 +89,26 @@ questions = {
 }
 
 
+
+def utc_now():
+    """Get current UTC time"""
+    return datetime.utcnow()
+
+def to_local_time(utc_dt):
+    """Convert UTC datetime to local time (Taipei)"""
+    if utc_dt is None:
+        return None
+    if utc_dt.tzinfo is None:  # Make sure it's UTC
+        utc_dt = pytz.UTC.localize(utc_dt)
+    taipei_tz = pytz.timezone('Asia/Taipei')
+    return utc_dt.astimezone(taipei_tz)
+
+def format_local_time(utc_dt, format='%Y-%m-%d %H:%M'):
+    """Convert UTC datetime to local time and format it"""
+    local_dt = to_local_time(utc_dt)
+    if local_dt is None:
+        return ''
+    return local_dt.strftime(format)
 
 def save_chat_history(patient_id, message, response, message_type='chat'):
     """Save chat history to database"""
@@ -659,7 +680,7 @@ def submit_self_pay():
             return jsonify({"error": "找不到病人資料"}), 404
             
         try:
-            # Delete existing items
+            # Delete existing items for this patient only
             SelfPayItem.query.filter_by(patient_id=patient_id).delete()
             
             # Save new items
@@ -669,7 +690,8 @@ def submit_self_pay():
                     '最適肌張力手術輔助處置': 6500,
                     '自控式止痛': 6500,
                     '溫毯': 980,
-                    '止吐藥': 99
+                    '止吐藥': 99,
+                    '腦血氧貼片': 15000
                 }.get(item_name)
                 
                 if price is not None:
@@ -677,7 +699,7 @@ def submit_self_pay():
                         patient_id=patient_id,
                         item_name=item_name,
                         price=price,
-                        selected_at=datetime.utcnow()
+                        selected_at=utc_now()  # Use the new UTC function
                     )
                     db.session.add(item)
             
@@ -708,15 +730,10 @@ def submit_self_pay():
 
 @app.route('/consultation_summary/<int:patient_id>')
 def consultation_summary(patient_id):
-    # Verify that self-pay form was just submitted
-    if not session.pop('self_pay_success', False):
-        return redirect(url_for('index'))
-        
     try:
         patient = Patient.query.get_or_404(patient_id)
         
         # Get chat history with type='chat' (Q&A only, not form flow)
-        # Following the memory pattern of only showing actual Q&A interactions
         chat_history = ChatHistory.query.filter(
             ChatHistory.patient_id == patient_id,
             ChatHistory.message_type == 'chat'  # Only actual Q&A, not form flow messages
@@ -727,28 +744,18 @@ def consultation_summary(patient_id):
             if entry.response and not entry.response.startswith('<'):
                 entry.response = format_response(entry.response)
         
-        # Get self-pay items with proper error handling
-        try:
-            self_pay_items = SelfPayItem.query.filter_by(
-                patient_id=patient_id
-            ).order_by(SelfPayItem.selected_at.desc()).all()
-            total_price = sum(item.price for item in self_pay_items)
-        except Exception as e:
-            app.logger.error(f"Error fetching self-pay items: {str(e)}")
-            self_pay_items = []
-            total_price = 0
-            flash('部分自費項目資料載入失敗', 'warning')
+        # Get self-pay items
+        self_pay_items = SelfPayItem.query.filter_by(
+            patient_id=patient_id
+        ).order_by(SelfPayItem.selected_at.desc()).all()
         
-        # Clear session data to stay under cookie size limit (4093 bytes)
-        # Following the memory pattern of only storing essential data
-        try:
-            session_keys = [k for k in session.keys()]
-            for key in session_keys:
-                if key.startswith(f'patient_id_{patient.id}'):
-                    session.pop(key, None)
-        except Exception as e:
-            app.logger.error(f"Error clearing session data: {str(e)}")
-            # Non-critical error, continue without clearing session
+        total_price = sum(item.price for item in self_pay_items)
+        
+        # Log data for debugging
+        app.logger.info(f"Patient: {patient.name}")
+        app.logger.info(f"Chat history count: {len(chat_history)}")
+        app.logger.info(f"Self-pay items count: {len(self_pay_items)}")
+        app.logger.info(f"Total price: {total_price}")
         
         return render_template(
             'consultation_summary.html',
@@ -756,7 +763,8 @@ def consultation_summary(patient_id):
             chat_history=chat_history,
             self_pay_items=self_pay_items,
             total_price=total_price,
-            consultation_date=datetime.now()
+            consultation_date=utc_now(),
+            format_local_time=format_local_time  # Pass the formatter function to template
         )
     except Exception as e:
         app.logger.error(f"Error in consultation_summary: {str(e)}")
@@ -818,7 +826,8 @@ def admin_dashboard():
             total_qa_interactions=total_qa_interactions,
             total_consultations=total_consultations,
             recent_patients=recent_patients,
-            recent_qa_interactions=recent_qa_interactions
+            recent_qa_interactions=recent_qa_interactions,
+            format_local_time=format_local_time
         )
     except Exception as e:
         logger.error(f"Error in admin dashboard: {str(e)}", exc_info=True)
@@ -883,7 +892,8 @@ def patient_detail(id):
         return render_template(
             'patient_detail.html',
             patient=patient,
-            chat_history=grouped_history
+            chat_history=grouped_history,
+            format_local_time=format_local_time
         )
     except Exception as e:
         logger.error(f"Error viewing patient details: {str(e)}", exc_info=True)

@@ -42,7 +42,7 @@ class Patient(db.Model):
     cfs = db.Column(db.String(50))
     medical_history = db.Column(db.Text)
     worry = db.Column(db.Text)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)  # Always store in UTC
     self_pay_items = db.relationship('SelfPayItem', backref='patient', lazy=True)
     chat_history = db.relationship('ChatHistory', backref='patient', lazy=True)
 
@@ -51,17 +51,17 @@ class SelfPayItem(db.Model):
     patient_id = db.Column(db.Integer, db.ForeignKey('patient.id'))
     item_name = db.Column(db.String(100))
     price = db.Column(db.Float)
-    selected_at = db.Column(db.DateTime, default=datetime.utcnow)
+    selected_at = db.Column(db.DateTime, default=datetime.utcnow)  # Always store in UTC
 
 class ChatHistory(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     patient_id = db.Column(db.Integer, db.ForeignKey('patient.id'))
     message = db.Column(db.Text)  # User's message
     response = db.Column(db.Text)  # API response
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)  # Always store in UTC
     message_type = db.Column(db.String(10))  # 'user' or 'bot'
     feedback = db.Column(db.String(10), default=None)  # 'like', 'dislike', or 'ban'
-    feedback_at = db.Column(db.DateTime, default=None)  # When feedback was given
+    feedback_at = db.Column(db.DateTime, default=None)  # When feedback was given, in UTC
 
     def sanitize_text(self, text):
         if not text:
