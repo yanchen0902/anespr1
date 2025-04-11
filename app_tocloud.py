@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, jsonify, session, redirect, u
 from datetime import datetime, timedelta
 import json
 import google.generativeai as genai
+import openai
 import os
 from dotenv import load_dotenv
 from markdown import markdown
@@ -12,7 +13,7 @@ import re
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user, AnonymousUserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from models import db, User, Patient, SelfPayItem, ChatHistory, login_manager, init_db, ChatbotEvaluation
-from sqlalchemy import text
+from sqlalchemy import text, func
 import pytz
 
 # Configure logging
@@ -282,10 +283,10 @@ def generate_summary(info):
     """Generate a summary of patient information"""
     summary = "<h2>您提供的資訊摘要</h2>"
     summary += "<ul>"
-    summary += f"<li><strong>姓名</strong>：{info.get('name', '未提供')}</li>"
-    summary += f"<li><strong>年齡</strong>：{info.get('age', '未提供')}歲</li>"
-    summary += f"<li><strong>性別</strong>：{info.get('sex', '未提供')}</li>"
-    summary += f"<li><strong>預定手術</strong>：{info.get('operation', '未提供')}</li>"
+    summary += f"<li><strong>姓名</strong>：{info.get('name', '未知')}</li>"
+    summary += f"<li><strong>年齡</strong>：{info.get('age', '未知')}歲</li>"
+    summary += f"<li><strong>性別</strong>：{info.get('sex', '未知')}</li>"
+    summary += f"<li><strong>預定手術</strong>：{info.get('operation', '未知')}</li>"
     
     cfs = "可以自行外出" if info.get('cfs') == "是" else "需要他人協助"
     summary += f"<li><strong>行動能力</strong>：{cfs}</li>"
@@ -331,17 +332,6 @@ def get_bot_response(message, patient_info):
             # Format the response first
             formatted_response = format_response(response.text)
             
-            # Save combined Q&A as one chat entry with formatted response
-            db.session.begin_nested()  # Create a savepoint
-            save_chat_history(
-                patient_id=patient_id,
-                message=message,  # User's question
-                response=formatted_response,  # Save the formatted response
-                message_type='chat'  # Use 'chat' type for Q&A interactions
-            )
-            db.session.commit()
-            logger.info(f"Chat Q&A saved for patient {patient_id}")
-            
             # Return the response with follow-up prompt
             return f"{formatted_response}\n\n您還有其他關於麻醉的問題嗎？"
         else:
@@ -385,72 +375,130 @@ def format_response(response):
         logger.error(f"Error formatting response: {str(e)}", exc_info=True)
         return response  # Return original text if formatting fails
 
+def get_question_type(message):
+    """Determine the type of question based on keywords"""
+    message = message.lower()
+    
+    anesthesia_keywords = ['麻醉', '全身', '局部', '半身', '無痛', '清醒', '睡著']
+    preparation_keywords = ['準備', '禁食', '藥物', '注意', '戒菸', '抽菸', '吃藥']
+    risk_keywords = ['風險', '危險', '併發症', '副作用', '死亡', '意外', '醒來', '恢復']
+    self_pay_keywords = ['自費', '費用', '價格', '多少錢', '監測', '溫毯', '止吐']
+    
+    if any(keyword in message for keyword in anesthesia_keywords):
+        return 'anesthesia'
+    elif any(keyword in message for keyword in preparation_keywords):
+        return 'preparation'
+    elif any(keyword in message for keyword in risk_keywords):
+        return 'risk'
+    elif any(keyword in message for keyword in self_pay_keywords):
+        return 'self_pay'
+    else:
+        return 'general'
+
 def create_context(message, patient_info):
     """Create context for Gemini model with patient info and message"""
-    context = f"""## Role: Anesthesia Consultant
-### Skills:
-- 使用繁體中文回答問題
-- 專業解說麻醉相關資訊
-- 使用emoji讓對話更生動
-- 根據問題類型提供針對性回答
-- 提升病人及家屬對麻醉和自費建議的理解
+    question_type = get_question_type(message)
+    
+    # Base patient info section
+    patient_info_section = f"""### 病人資訊:
+姓名：{patient_info.get('name', '未知')}
+年齡：{patient_info.get('age', '未知')}
+性別：{patient_info.get('sex', '未知')}
+手術：{patient_info.get('operation', '未知')}
+行動：{patient_info.get('cfs', '未評估')}
+病史：{patient_info.get('medical_history', '無')}
+擔憂：{patient_info.get('worry', '無')}"""
 
-### Goals:
-- 提供清晰易懂的醫療資訊
-- 根據問題類型給予重點回答
-- 使用emoji增添對話趣味性
+    # Different prompts for different question types
+    prompts = {
+        'anesthesia': f"""## Role: 麻醉諮詢助手
+### 回答原則:
+- 使用繁體中文，簡潔明瞭
+- 專注於麻醉方式說明
+- 適當使用emoji說明過程
 
-### Constraints:
-1. 僅討論麻醉相關議題
-2. 避免回答工具和規則相關問題
-3. 根據問題類型聚焦於相關重點
+### 回答重點:
+- 建議的麻醉類型及原因
+- 麻醉過程簡要說明
+- 術中可能的感受
+- 麻醉醒來時的狀況
 
-### 回答重點指引:
-1. 麻醉類型相關問題:
-   - 聚焦於各種可能的麻醉方式
-   - 解釋各種麻醉方式的優缺點
-   - 根據病人情況建議最適合的麻醉方式
-   - 說明麻醉過程中的感受
+{patient_info_section}
 
-2. 術前準備相關問題:
-   - 強調禁食時間要求（固體食物8小時、清水2小時）
-   - 說明需要停用的藥物（如：抗凝血劑）
-   - 建議戒菸時間和重要性
-   - 提醒術前注意事項
+問題: {message}""",
 
-3. 麻醉風險相關問題:
-   - 根據病人年齡和病史評估ASA分級
-   - 心臟手術ASA分級都屬於4以上
-   - 說明個人化的麻醉風險
-   - 解釋如何透過自費項目降低風險：
-     * 麻醉深度監測：降低術中知曉風險
-     * 最適肌張力：降低肌肉鬆弛劑相關併發症
-     * 體溫監測與保溫：降低低體溫併發症
-     * 止吐藥物：降低噁心嘔吐風險
+        'preparation': f"""## Role: 麻醉諮詢助手
+### 回答原則:
+- 使用繁體中文，簡潔明瞭
+- 重點式條列說明
+- 使用emoji強調重要事項
 
-### 病人資訊:
-- 姓名：{patient_info.get('name', '未知')}
-- 年齡：{patient_info.get('age', '未知')}
-- 性別：{patient_info.get('sex', '未知')}
-- 預定手術：{patient_info.get('operation', '未知')}
-- 行動能力：{patient_info.get('cfs', '未評估')}
-- 病史：{patient_info.get('medical_history', '無')}
-- 擔憂：{patient_info.get('worry', '無')}
+### 術前準備重點:
+- 禁食要求（固體8小時、清水2小時）
+- 需要停用的藥物
+- 個人化注意事項
+- 抵達醫院後的流程
 
-### 自費項目建議規則：
-- 年齡>50歲或ASA>2級: 建議使用麻醉深度監測系統和最適肌張力手術輔助處置
-- 擔心疼痛: 建議使用病人自控式止痛
-- 容易暈車或手術>2小時: 建議使用止吐藥和麻醉深度監測系統
-- 怕冷或手術>1小時: 建議使用溫毯並解釋保溫重要性
-- 失眠或精神緊張: 建議使用麻醉深度監測系統
-- 體弱或年長: 建議使用麻醉深度監測系統和最適肌張力手術輔助處置
-- 心臟手術: 建議使用腦血氧貼片
+{patient_info_section}
 
+問題: {message}""",
 
-病人問題: {message}
+        'risk': f"""## Role: 麻醉諮詢助手
+### 回答原則:
+- 使用繁體中文，清楚說明
+- 針對個人情況分析
+- 使用emoji緩和說明氣氛
 
-請根據以上資訊，提供專業且易懂的回答。使用markdown格式並加入適當的emoji增添親和力。回答時請依據問題類型(麻醉類型/術前準備/麻醉風險)聚焦於相關重點。"""
-    return context
+### 風險評估重點:
+- 根據年齡和病史的風險等級
+- 可能發生的併發症
+- 如何降低風險：
+  * 麻醉深度監測
+  * 最適肌張力
+  * 體溫監測
+  * 止吐藥物
+
+{patient_info_section}
+
+問題: {message}""",
+
+        'self_pay': f"""## Role: 麻醉諮詢助手
+### 回答原則:
+- 使用繁體中文，簡潔說明
+- 針對性建議自費項目
+- 使用emoji增加親和力
+
+### 自費建議規則:
+- 年齡>50或風險較高: 建議麻醉深度監測、最適肌張力
+- 擔心疼痛: 建議自控式止痛
+- 易暈或手術>2小時: 建議止吐藥、麻醉深度監測
+- 怕冷或手術>1小時: 建議溫毯
+- 焦慮或失眠: 建議麻醉深度監測
+- 心臟手術: 建議腦血氧監測
+
+{patient_info_section}
+
+問題: {message}""",
+
+        'general': f"""## Role: 麻醉諮詢助手
+### 回答原則:
+- 使用繁體中文，簡潔明瞭
+- 專注於麻醉相關資訊
+- 適當使用emoji增加親和力
+- 根據問題重點回答
+
+### 基本重點:
+- 麻醉相關解釋
+- 術前準備說明
+- 安全考量說明
+- 相關建議事項
+
+{patient_info_section}
+
+問題: {message}"""
+    }
+
+    return prompts.get(question_type, prompts['general'])
 
 # Initialize Gemini API
 GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')
@@ -507,6 +555,44 @@ try:
 except Exception as e:
     logger.error(f"Failed to initialize Gemini model at startup: {str(e)}")
     model = None
+
+# Initialize OpenAI API
+OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
+if not OPENAI_API_KEY:
+    logger.error("OpenAI API key not found in environment variables")
+else:
+    logger.info(f"OpenAI API key loaded: {OPENAI_API_KEY[:5]}...{OPENAI_API_KEY[-4:]}")
+    openai.api_key = OPENAI_API_KEY
+
+def get_openai_response(message, patient_info):
+    """Get response from OpenAI model"""
+    try:
+        if not openai.api_key:
+            logger.error("OpenAI API key not set")
+            return "抱歉，OpenAI API 金鑰未設定。"
+            
+        context = create_context(message, patient_info)
+        logger.info("Sending request to OpenAI...")
+        
+        response = openai.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "你是一位專業的麻醉諮詢助手，請根據病人的資訊提供適當的建議。"},
+                {"role": "user", "content": context}
+            ],
+            temperature=0.7,
+            max_tokens=1000
+        )
+        logger.info("Received response from OpenAI")
+        
+        if not response or not response.choices:
+            logger.error("Empty response from OpenAI")
+            return "抱歉，OpenAI 回應為空。"
+            
+        return format_response(response.choices[0].message.content)
+    except Exception as e:
+        logger.error(f"Error getting OpenAI response: {str(e)}", exc_info=True)
+        return f"抱歉，OpenAI 回應出現錯誤：{str(e)}"
 
 @app.route('/')
 def home():
@@ -575,8 +661,8 @@ def chat():
         if current_step != 'chat':
             try:
                 response = handle_patient_info(user_id, current_step, message)
-                # Save form flow messages with user/bot type
-                if patient_id:
+                # Save form flow messages with user/bot type only during form flow
+                if patient_id and current_step != 'chat':
                     try:
                         db.session.begin_nested()  # Create savepoint
                         save_chat_history(patient_id, message, None, 'user')
@@ -601,10 +687,29 @@ def chat():
             # Add user_id to patient_info for chat history
             patient_info['user_id'] = user_id
             
-            # Get bot response (includes follow-up prompt)
-            response = get_bot_response(message, patient_info)
+            # Get responses from both models
+            gemini_response = get_bot_response(message, patient_info)
+            openai_response = get_openai_response(message, patient_info)
             
-            return jsonify({'response': response})
+            # Save chat history with both responses
+            try:
+                db.session.begin_nested()  # Create savepoint
+                chat = ChatHistory(
+                    patient_id=patient_id,
+                    message=message,
+                    response=gemini_response,
+                    openai_response=openai_response,
+                    message_type='chat'
+                )
+                db.session.add(chat)
+                db.session.commit()
+                logger.info(f"Chat history saved for patient {patient_id}")
+            except Exception as e:
+                logger.error(f"Error saving chat history: {str(e)}", exc_info=True)
+                db.session.rollback()
+                raise
+            
+            return jsonify({'response': gemini_response})
             
         except Exception as e:
             logger.error(f"Error in chat endpoint: {str(e)}", exc_info=True)
@@ -903,46 +1008,59 @@ def patient_detail(id):
 @app.route('/admin/feedback/<int:chat_id>', methods=['POST'])
 @login_required
 def submit_feedback(chat_id):
-    """Handle feedback submission for chat responses"""
     try:
-        feedback_type = request.form.get('feedback')
-        if feedback_type not in ['like', 'dislike', 'ban']:
-            flash('Invalid feedback type', 'error')
-            return redirect(request.referrer or url_for('admin_dashboard'))
+        feedback = request.form.get('feedback')
+        if feedback not in ['like', 'dislike', 'ban']:
+            return jsonify({'status': 'error', 'message': 'Invalid feedback type'}), 400
+
+        chat = ChatHistory.query.get(chat_id)
+        if not chat:
+            return jsonify({'status': 'error', 'message': 'Chat not found'}), 404
+
+        chat.feedback = feedback
+        chat.feedback_at = datetime.now()
+        db.session.commit()
+
+        return jsonify({'status': 'success'})
+    except Exception as e:
+        app.logger.error(f"Error submitting feedback: {str(e)}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/admin/chat/prefer-response', methods=['POST'])
+@login_required
+def prefer_response():
+    try:
+        chat_id = request.form.get('chat_id')
+        model = request.form.get('model')
         
-        chat_entry = ChatHistory.query.get_or_404(chat_id)
-        
-        # Don't allow changing feedback type from 'ban' to prevent accidental unbanning
-        if chat_entry.feedback == 'ban' and feedback_type != 'ban':
-            flash('Cannot modify banned responses', 'error')
-            return redirect(request.referrer or url_for('admin_dashboard'))
-        
-        chat_entry.feedback = feedback_type
-        chat_entry.feedback_at = datetime.now()
-        
-        # If feedback is 'ban', save the response for future reference
-        if feedback_type == 'ban':
-            banned_response = chat_entry.response
-            # TODO: Implement banned response tracking for model improvement
-        
+        if not chat_id or not model:
+            return jsonify({'status': 'error', 'message': 'Missing chat_id or model'}), 400
+            
+        if model not in ['gemini', 'openai']:
+            return jsonify({'status': 'error', 'message': 'Invalid model'}), 400
+
+        chat = ChatHistory.query.get(chat_id)
+        if not chat:
+            return jsonify({'status': 'error', 'message': 'Chat not found'}), 404
+
+        chat.preferred_response = model
+        chat.preferred_at = datetime.now()  # Add timestamp
         db.session.commit()
         
-        flash('Feedback submitted successfully', 'success')
-        return redirect(request.referrer or url_for('admin_dashboard'))
+        app.logger.info(f"Set preferred response for chat {chat_id} to {model}")
+        return jsonify({'status': 'success'})
     except Exception as e:
-        logger.error(f"Error submitting feedback: {str(e)}", exc_info=True)
-        flash('Error submitting feedback', 'error')
-        return redirect(request.referrer or url_for('admin_dashboard'))
+        app.logger.error(f"Error setting preferred response: {str(e)}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
 
 @app.route('/admin/feedback_stats')
 @login_required
 def feedback_stats():
-    """Display feedback statistics for chat responses"""
     try:
         # Get overall feedback counts
         feedback_counts = db.session.query(
             ChatHistory.feedback, 
-            db.func.count(ChatHistory.id)
+            func.count(ChatHistory.id)
         ).filter(
             ChatHistory.feedback.isnot(None),
             ChatHistory.message_type == 'chat'  # Only count Q&A interactions
@@ -951,7 +1069,7 @@ def feedback_stats():
         ).all()
         
         # Format the counts for display
-        formatted_counts = {
+        feedback_counts_dict = {
             'like': 0,
             'dislike': 0,
             'ban': 0,
@@ -959,64 +1077,59 @@ def feedback_stats():
         }
         
         for feedback, count in feedback_counts:
-            if feedback in formatted_counts:
-                formatted_counts[feedback] = count
-                formatted_counts['total'] += count
+            if feedback in feedback_counts_dict:
+                feedback_counts_dict[feedback] = count
+                feedback_counts_dict['total'] += count
         
         # Calculate feedback percentages
-        if formatted_counts['total'] > 0:
-            formatted_counts['like_percent'] = round((formatted_counts['like'] / formatted_counts['total']) * 100, 1)
-            formatted_counts['dislike_percent'] = round((formatted_counts['dislike'] / formatted_counts['total']) * 100, 1)
-            formatted_counts['ban_percent'] = round((formatted_counts['ban'] / formatted_counts['total']) * 100, 1)
+        if feedback_counts_dict['total'] > 0:
+            feedback_counts_dict['like_percent'] = round((feedback_counts_dict['like'] / feedback_counts_dict['total']) * 100, 1)
+            feedback_counts_dict['dislike_percent'] = round((feedback_counts_dict['dislike'] / feedback_counts_dict['total']) * 100, 1)
+            feedback_counts_dict['ban_percent'] = round((feedback_counts_dict['ban'] / feedback_counts_dict['total']) * 100, 1)
         else:
-            formatted_counts['like_percent'] = 0
-            formatted_counts['dislike_percent'] = 0
-            formatted_counts['ban_percent'] = 0
+            feedback_counts_dict['like_percent'] = 0
+            feedback_counts_dict['dislike_percent'] = 0
+            feedback_counts_dict['ban_percent'] = 0
         
-        # Get feedback trends (last 7 days)
-        seven_days_ago = datetime.now() - timedelta(days=7)
-        daily_feedback = db.session.query(
-            db.func.date(ChatHistory.feedback_at).label('date'),
+        # Get detailed feedback data
+        feedback_data = db.session.query(
+            ChatHistory.id,
+            Patient.id.label('patient_id'),
+            Patient.name.label('patient_name'),
             ChatHistory.feedback,
-            db.func.count(ChatHistory.id)
+            ChatHistory.preferred_response,
+            ChatHistory.message
+        ).join(
+            Patient, ChatHistory.patient_id == Patient.id
         ).filter(
-            ChatHistory.feedback.isnot(None),
-            ChatHistory.message_type == 'chat',
-            ChatHistory.feedback_at >= seven_days_ago
-        ).group_by(
-            'date',
-            ChatHistory.feedback
-        ).order_by('date').all()
-        
-        # Format daily feedback for display
-        feedback_trends = {}
-        for date, feedback, count in daily_feedback:
-            if date not in feedback_trends:
-                feedback_trends[date] = {'like': 0, 'dislike': 0, 'ban': 0}
-            feedback_trends[date][feedback] = count
-        
-        # Get recent feedback entries with more details
-        recent_feedback = ChatHistory.query.filter(
-            ChatHistory.feedback.isnot(None),
             ChatHistory.message_type == 'chat'
         ).order_by(
-            ChatHistory.feedback_at.desc()
-        ).limit(20).all()
+            ChatHistory.created_at.desc()
+        ).all()
         
-        # Get patient info and enrich feedback entries
-        for entry in recent_feedback:
-            patient = Patient.query.get(entry.patient_id)
-            entry.patient_name = patient.name if patient else "Unknown"
-            entry.patient_age = patient.age if patient else None
-            entry.feedback_age = (datetime.now() - entry.feedback_at).days
-            # Format the response using the same function as chat
-            entry.response = format_response(entry.response)
+        # Get evaluation data keyed by patient_id
+        evaluations = {}
+        eval_results = db.session.query(
+            ChatbotEvaluation.patient_id,
+            func.avg(ChatbotEvaluation.accuracy_score).label('avg_accuracy'),
+            func.avg(ChatbotEvaluation.trustworthiness_score).label('avg_trust'),
+            func.avg(ChatbotEvaluation.empathy_score).label('avg_empathy')
+        ).group_by(
+            ChatbotEvaluation.patient_id
+        ).all()
+        
+        for result in eval_results:
+            evaluations[result.patient_id] = {
+                'accuracy': round(result.avg_accuracy, 1) if result.avg_accuracy else 'N/A',
+                'trust': round(result.avg_trust, 1) if result.avg_trust else 'N/A',
+                'empathy': round(result.avg_empathy, 1) if result.avg_empathy else 'N/A'
+            }
         
         return render_template(
             'feedback_stats.html',
-            counts=formatted_counts,
-            recent_feedback=recent_feedback,
-            feedback_trends=feedback_trends
+            counts=feedback_counts_dict,
+            feedback_data=feedback_data,
+            evaluations=evaluations
         )
     except Exception as e:
         logger.error(f"Error viewing feedback stats: {str(e)}", exc_info=True)
@@ -1024,7 +1137,6 @@ def feedback_stats():
         return redirect(url_for('admin_dashboard'))
 
 @app.route('/admin/patient/<int:id>/evaluate', methods=['POST'])
-@login_required
 def evaluate_chatbot(id):
     try:
         patient = Patient.query.get_or_404(id)

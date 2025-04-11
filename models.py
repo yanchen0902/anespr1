@@ -57,11 +57,13 @@ class ChatHistory(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     patient_id = db.Column(db.Integer, db.ForeignKey('patient.id'))
     message = db.Column(db.Text)  # User's message
-    response = db.Column(db.Text)  # API response
+    response = db.Column(db.Text)  # Gemini response
+    openai_response = db.Column(db.Text)  # OpenAI response
     created_at = db.Column(db.DateTime, default=datetime.utcnow)  # Always store in UTC
-    message_type = db.Column(db.String(10))  # 'user' or 'bot'
+    message_type = db.Column(db.String(10))  # 'user', 'bot', 'chat', or 'summary'
     feedback = db.Column(db.String(10), default=None)  # 'like', 'dislike', or 'ban'
     feedback_at = db.Column(db.DateTime, default=None)  # When feedback was given, in UTC
+    preferred_response = db.Column(db.String(10), default=None)  # 'gemini' or 'openai'
 
     def sanitize_text(self, text):
         if not text:
@@ -74,11 +76,13 @@ class ChatHistory(db.Model):
         return text
 
     def __init__(self, **kwargs):
-        # Sanitize message and response before saving
+        # Sanitize message and responses before saving
         if 'message' in kwargs:
             kwargs['message'] = self.sanitize_text(kwargs['message'])
         if 'response' in kwargs:
             kwargs['response'] = self.sanitize_text(kwargs['response'])
+        if 'openai_response' in kwargs:
+            kwargs['openai_response'] = self.sanitize_text(kwargs['openai_response'])
         super(ChatHistory, self).__init__(**kwargs)
 
 class ChatbotEvaluation(db.Model):

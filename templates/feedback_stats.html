@@ -13,7 +13,7 @@
         }
         .stats-container {
             padding: 20px;
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
         }
         .header {
@@ -52,6 +52,7 @@
             padding: 20px;
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
         }
         .section-title {
             font-size: 18px;
@@ -98,126 +99,107 @@
             background-color: #e3f2fd;
             color: #1565c0;
         }
-        .feedback-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
+        .feedback-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            font-size: 14px;
         }
-        .feedback-card {
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            padding: 20px;
-        }
-        .feedback-section {
-            margin-bottom: 30px;
-        }
-        .feedback-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-            padding-bottom: 10px;
+        .feedback-table th,
+        .feedback-table td {
+            padding: 12px 15px;
+            text-align: left;
             border-bottom: 1px solid #eee;
         }
-        .feedback-patient {
-            font-weight: 600;
+        .feedback-table th {
+            background-color: #f8f9fa;
             color: #2c3e50;
-        }
-        .feedback-time {
-            color: #7f8c8d;
-            font-size: 14px;
-        }
-        .feedback-content {
-            margin-bottom: 15px;
-        }
-        .feedback-label {
             font-weight: 600;
-            color: #2c3e50;
-            margin-bottom: 5px;
+            position: sticky;
+            top: 0;
         }
-        .feedback-text {
-            color: #34495e;
-            white-space: pre-wrap;
-            word-break: break-word;
-            font-size: 14px;
-            line-height: 1.5;
+        .feedback-table tr:hover {
+            background-color: #f5f9fc;
         }
-        .feedback-type {
-            display: inline-flex;
-            align-items: center;
+        .feedback-table tbody tr:nth-child(even) {
+            background-color: #fafafa;
+        }
+        .badge {
+            display: inline-block;
             padding: 4px 8px;
             border-radius: 4px;
             font-size: 12px;
-            font-weight: 500;
+            font-weight: 600;
         }
-        .feedback-like {
-            background: #e8f5e9;
+        .badge-like {
+            background-color: #e8f5e9;
             color: #2e7d32;
         }
-        .feedback-dislike {
-            background: #ffebee;
+        .badge-dislike {
+            background-color: #ffebee;
             color: #c62828;
         }
-        .feedback-ban {
-            background: #fff3e0;
+        .badge-ban {
+            background-color: #fff3e0;
             color: #e65100;
         }
-        .feedback-actions {
-            margin-top: 15px;
-            text-align: right;
+        .badge-gemini {
+            background-color: #e3f2fd;
+            color: #1565c0;
         }
-        .view-details {
-            padding: 6px 12px;
-            background: #3498db;
-            color: white;
-            text-decoration: none;
-            border-radius: 4px;
-            font-size: 14px;
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
+        .badge-openai {
+            background-color: #e0f2f1;
+            color: #00796b;
         }
-        .view-details:hover {
-            background: #2980b9;
+        .badge-none {
+            background-color: #eeeeee;
+            color: #757575;
         }
-        .empty-state {
-            text-align: center;
-            padding: 40px 20px;
-            color: #7f8c8d;
+        .score {
+            font-weight: 600;
         }
-        .empty-icon {
-            font-size: 48px;
+        .flash-messages {
+            margin-bottom: 20px;
+        }
+        .flash {
+            padding: 15px;
             margin-bottom: 15px;
-            color: #95a5a6;
+            border-radius: 4px;
         }
-        .content-grid {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
+        .flash-error {
+            background-color: #ffebee;
+            color: #c62828;
+            border-left: 4px solid #c62828;
+        }
+        .flash-success {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+            border-left: 4px solid #2e7d32;
+        }
+        .table-wrapper {
+            overflow-x: auto;
+        }
+        .scores-cell {
+            min-width: 200px;
         }
         @media (max-width: 768px) {
             .stats-container {
-                padding: 20px;
+                padding: 15px;
             }
             .header {
-                margin-bottom: 30px;
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
             }
             .page-title {
-                font-size: 1.8rem;
+                font-size: 20px;
             }
-            .stats-summary {
-                grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-                gap: 20px;
+            .feedback-table {
+                font-size: 13px;
             }
-            .stat-number {
-                font-size: 2.4rem;
-            }
-            .feedback-grid {
-                grid-template-columns: 1fr;
-            }
-            .stats-card {
-                padding: 20px;
+            .feedback-table th,
+            .feedback-table td {
+                padding: 8px 10px;
             }
         }
     </style>
@@ -241,83 +223,81 @@
             {% endif %}
         {% endwith %}
 
-        <div class="content-grid">
-            <div class="stats-card">
-                <h2 class="section-title">評價總覽</h2>
-                <div class="stats-summary">
-                    <div class="stat-item stat-like">
-                        <div class="stat-number">{{ counts.like }}</div>
-                        <div class="stat-label">讚同</div>
-                    </div>
-                    <div class="stat-item stat-dislike">
-                        <div class="stat-number">{{ counts.dislike }}</div>
-                        <div class="stat-label">不讚同</div>
-                    </div>
-                    <div class="stat-item stat-ban">
-                        <div class="stat-number">{{ counts.ban }}</div>
-                        <div class="stat-label">禁用</div>
-                    </div>
-                    <div class="stat-item stat-total">
-                        <div class="stat-number">{{ counts.total }}</div>
-                        <div class="stat-label">總計</div>
-                    </div>
+        <div class="stats-card">
+            <h2 class="section-title">評價總覽</h2>
+            <div class="stats-summary">
+                <div class="stat-item stat-like">
+                    <div class="stat-number">{{ counts.like }}</div>
+                    <div class="stat-label">讚同</div>
+                </div>
+                <div class="stat-item stat-dislike">
+                    <div class="stat-number">{{ counts.dislike }}</div>
+                    <div class="stat-label">不讚同</div>
+                </div>
+                <div class="stat-item stat-ban">
+                    <div class="stat-number">{{ counts.ban }}</div>
+                    <div class="stat-label">禁用</div>
+                </div>
+                <div class="stat-item stat-total">
+                    <div class="stat-number">{{ counts.total }}</div>
+                    <div class="stat-label">總計</div>
                 </div>
             </div>
+        </div>
 
-            <div class="stats-card">
-                <h2 class="section-title">最近評價</h2>
-                {% if recent_feedback %}
-                <div class="feedback-grid">
-                    {% for entry in recent_feedback %}
-                    <div class="feedback-card">
-                        <div class="feedback-header">
-                            <div class="feedback-patient">
-                                病人: {{ entry.patient_name }}
-                            </div>
-                            <div class="feedback-time">
-                                {{ entry.feedback_at.strftime('%Y-%m-%d %H:%M') }}
-                            </div>
-                        </div>
-                        <div class="feedback-content">
-                            <div class="feedback-label">評價類型:</div>
-                            {% if entry.feedback == 'like' %}
-                            <span class="feedback-type feedback-like">
-                                <i class="fas fa-thumbs-up"></i> 讚同
-                            </span>
-                            {% elif entry.feedback == 'dislike' %}
-                            <span class="feedback-type feedback-dislike">
-                                <i class="fas fa-thumbs-down"></i> 不讚同
-                            </span>
-                            {% elif entry.feedback == 'ban' %}
-                            <span class="feedback-type feedback-ban">
-                                <i class="fas fa-ban"></i> 禁用
-                            </span>
-                            {% endif %}
-                        </div>
-                        <div class="feedback-content">
-                            <div class="feedback-label">問題:</div>
-                            <div class="feedback-text">{{ entry.message }}</div>
-                        </div>
-                        <div class="feedback-content">
-                            <div class="feedback-label">回應:</div>
-                            <div class="feedback-text">{{ entry.response|striptags }}</div>
-                        </div>
-                        <div class="feedback-actions">
-                            <a href="{{ url_for('patient_detail', id=entry.patient_id) }}" class="view-details">
-                                <i class="fas fa-external-link-alt"></i> 查看詳情
-                            </a>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-                {% else %}
-                <div class="empty-state">
-                    <div class="empty-icon">
-                        <i class="fas fa-inbox"></i>
-                    </div>
-                    <p>目前沒有任何評價記錄</p>
-                </div>
-                {% endif %}
+        <div class="stats-card">
+            <h2 class="section-title">詳細評價記錄</h2>
+            <div class="table-wrapper">
+                <table class="feedback-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>病患姓名</th>
+                            <th>提問內容</th>
+                            <th>API 評價</th>
+                            <th>較佳回應</th>
+                            <th class="scores-cell">評分 (準確性/可信度/同理心)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in feedback_data %}
+                        <tr>
+                            <td>{{ item.id }}</td>
+                            <td><a href="{{ url_for('patient_detail', id=item.patient_id) }}">{{ item.patient_name }}</a></td>
+                            <td>{{ item.message[:50] + '...' if item.message and item.message|length > 50 else item.message }}</td>
+                            <td>
+                                {% if item.feedback == 'like' %}
+                                <span class="badge badge-like"><i class="fas fa-thumbs-up"></i> 讚同</span>
+                                {% elif item.feedback == 'dislike' %}
+                                <span class="badge badge-dislike"><i class="fas fa-thumbs-down"></i> 不讚同</span>
+                                {% elif item.feedback == 'ban' %}
+                                <span class="badge badge-ban"><i class="fas fa-ban"></i> 禁用</span>
+                                {% else %}
+                                <span class="badge badge-none">未評價</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if item.preferred_response == 'gemini' %}
+                                <span class="badge badge-gemini">Gemini</span>
+                                {% elif item.preferred_response == 'openai' %}
+                                <span class="badge badge-openai">OpenAI</span>
+                                {% else %}
+                                <span class="badge badge-none">未選擇</span>
+                                {% endif %}
+                            </td>
+                            <td class="scores-cell">
+                                {% if item.patient_id in evaluations %}
+                                <span class="score">準確性: {{ evaluations[item.patient_id].accuracy }}</span> / 
+                                <span class="score">可信度: {{ evaluations[item.patient_id].trust }}</span> / 
+                                <span class="score">同理心: {{ evaluations[item.patient_id].empathy }}</span>
+                                {% else %}
+                                <span class="badge badge-none">未評分</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>

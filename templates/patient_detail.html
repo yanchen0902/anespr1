@@ -6,6 +6,7 @@
     <title>病人詳細資料 - 麻醉諮詢系統</title>
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <style>
         .patient-detail {
             padding: 20px;
@@ -129,46 +130,45 @@
             text-transform: capitalize;
         }
         .feedback-buttons {
-            margin-top: 10px;
             display: flex;
             gap: 10px;
-        }
-        .feedback-form {
-            display: inline-block;
+            padding: 10px;
+            border-top: 1px solid #eee;
         }
         .feedback-btn {
-            padding: 6px 12px;
             border: none;
+            background: none;
+            padding: 8px;
             border-radius: 4px;
             cursor: pointer;
             transition: all 0.2s ease;
+            color: #666;
         }
         .feedback-btn:hover {
-            transform: scale(1.1);
+            background-color: #f5f5f5;
         }
-        .like-btn {
-            background-color: #dff0d8;
-            color: #3c763d;
+        .feedback-btn.like:hover {
+            color: #2e7d32;
         }
-        .like-btn.active {
-            background-color: #3c763d;
-            color: #fff;
+        .feedback-btn.dislike:hover {
+            color: #c62828;
         }
-        .dislike-btn {
-            background-color: #f2dede;
-            color: #a94442;
+        .feedback-btn.ban:hover {
+            color: #e65100;
         }
-        .dislike-btn.active {
-            background-color: #a94442;
-            color: #fff;
+        .feedback-btn[disabled] {
+            background-color: #f5f5f5;
+            cursor: not-allowed;
+            opacity: 0.7;
         }
-        .ban-btn {
-            background-color: #fcf8e3;
-            color: #8a6d3b;
+        .feedback-btn.like[disabled] {
+            color: #2e7d32;
         }
-        .ban-btn.active {
-            background-color: #8a6d3b;
-            color: #fff;
+        .feedback-btn.dislike[disabled] {
+            color: #c62828;
+        }
+        .feedback-btn.ban[disabled] {
+            color: #e65100;
         }
         .evaluation-form {
             margin-top: 20px;
@@ -253,6 +253,123 @@
             color: #999;
             text-align: right;
         }
+        .message-bubble {
+            padding: 10px;
+            border-radius: 8px;
+            max-width: 80%;
+            word-wrap: break-word;
+        }
+        .user-message {
+            background-color: #e3f2fd;
+            margin-left: auto;
+        }
+        .response-comparison {
+            display: flex;
+            gap: 20px;
+            overflow-x: auto;
+            padding: 10px 0;
+            margin: 0 -20px;  
+            padding: 10px 20px;  
+            scroll-snap-type: x mandatory;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .response-card {
+            flex: 0 0 auto;  
+            width: 100%;  
+            max-width: 500px;  
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            scroll-snap-align: start;
+        }
+
+        .response-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .response-card-header h6 {
+            margin: 0;
+            font-size: 1.1em;
+            color: #333;
+        }
+
+        .prefer-response-btn {
+            padding: 6px 12px;
+            background: #f0f0f0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.2s;
+        }
+
+        .prefer-response-btn:disabled {
+            background: #4CAF50;
+            color: white;
+            border-color: #4CAF50;
+        }
+
+        .prefer-response-btn:not(:disabled):hover {
+            background: #e0e0e0;
+        }
+
+        /* Scroll indicators */
+        .scroll-indicator {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            z-index: 1;
+            border: none;
+            color: #666;
+            transition: all 0.2s;
+        }
+
+        .scroll-left {
+            left: 10px;
+        }
+
+        .scroll-right {
+            right: 10px;
+        }
+
+        .scroll-indicator:hover {
+            background: rgba(255, 255, 255, 1);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+
+        /* Hide scroll indicators when not needed */
+        @media (min-width: 1200px) {
+            .response-comparison {
+                overflow-x: visible;
+            }
+            .scroll-indicator {
+                display: none;
+            }
+        }
+
+        /* Responsive design */
+        @media (min-width: 768px) {
+            .response-card {
+                width: calc(50% - 10px);  
+            }
+        }
     </style>
 </head>
 <body>
@@ -321,49 +438,97 @@
             <div class="detail-label">諮詢紀錄</div>
             {% if chat_history %}
             <div class="chat-history">
-                {% for entry in chat_history %}
-                    {% if entry.type == 'form_flow' %}
-                        <div class="chat-entry form-flow">
-                            <small class="timestamp">{{ format_local_time(entry.timestamp) }}</small>
-                            {% for msg in entry.messages %}
-                                <div class="form-message {% if msg.message_type == 'user' %}form-user{% else %}form-bot{% endif %}">
-                                    {% if msg.message %}{{ msg.message }}{% endif %}
-                                    {% if msg.response %}{{ msg.response }}{% endif %}
-                                </div>
-                            {% endfor %}
-                        </div>
-                    {% elif entry.message_type == 'chat' %}
-                        <div class="chat-entry">
-                            <small class="timestamp">{{ format_local_time(entry.created_at) }}</small>
-                            <div class="chat-qa">
-                                <div class="chat-question">{{ entry.message }}</div>
-                                <div class="chat-answer">{{ entry.response|safe }}</div>
-                                <div class="feedback-buttons">
-                                    <form action="{{ url_for('submit_feedback', chat_id=entry.id) }}" method="post" class="feedback-form">
-                                        <input type="hidden" name="feedback" value="like">
-                                        <button type="submit" class="feedback-btn like-btn {% if entry.feedback == 'like' %}active{% endif %}" title="讚同此回應">
-                                            <i class="fas fa-thumbs-up"></i> 讚同
-                                        </button>
-                                    </form>
-                                    <form action="{{ url_for('submit_feedback', chat_id=entry.id) }}" method="post" class="feedback-form">
-                                        <input type="hidden" name="feedback" value="dislike">
-                                        <button type="submit" class="feedback-btn dislike-btn {% if entry.feedback == 'dislike' %}active{% endif %}" title="不讚同此回應">
-                                            <i class="fas fa-thumbs-down"></i> 不讚同
-                                        </button>
-                                    </form>
-                                    <form action="{{ url_for('submit_feedback', chat_id=entry.id) }}" method="post" class="feedback-form">
-                                        <input type="hidden" name="feedback" value="ban">
-                                        <button type="submit" class="feedback-btn ban-btn {% if entry.feedback == 'ban' %}active{% endif %}" title="禁用此回應">
-                                            <i class="fas fa-ban"></i> 禁用
-                                        </button>
-                                    </form>
-                                </div>
+                {% for chat in chat_history %}
+                    {% if chat.message_type == 'chat' %}
+                        <!-- User Message -->
+                        <div class="d-flex justify-content-end mb-3">
+                            <div class="message-bubble user-message">
+                                {{ chat.message }}
                             </div>
                         </div>
-                    {% elif entry.message_type == 'summary' %}
+                        
+                        <!-- Response Comparison -->
+                        <div class="position-relative mb-4">
+                            <button class="scroll-indicator scroll-left" onclick="scrollResponses(this, -1)">
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            <div class="response-comparison">
+                                <!-- Gemini Response -->
+                                <div class="response-card">
+                                    <div class="response-card-header">
+                                        <h6>Gemini 回應</h6>
+                                        <button class="prefer-response-btn" 
+                                                data-chat-id="{{ chat.id }}" 
+                                                data-model="gemini"
+                                                {% if chat.preferred_response == 'gemini' %}disabled{% endif %}>
+                                            {% if chat.preferred_response == 'gemini' %}
+                                                ✓ 已選為較佳回應
+                                            {% else %}
+                                                選為較佳回應
+                                            {% endif %}
+                                        </button>
+                                    </div>
+                                    <div class="card-body">
+                                        {{ chat.response | safe }}
+                                    </div>
+                                    <div class="feedback-buttons">
+                                        <button class="feedback-btn like" data-chat-id="{{ chat.id }}" data-feedback="like" {% if chat.feedback == 'like' %}disabled{% endif %}>
+                                            <i class="fas fa-thumbs-up"></i>
+                                        </button>
+                                        <button class="feedback-btn dislike" data-chat-id="{{ chat.id }}" data-feedback="dislike" {% if chat.feedback == 'dislike' %}disabled{% endif %}>
+                                            <i class="fas fa-thumbs-down"></i>
+                                        </button>
+                                        <button class="feedback-btn ban" data-chat-id="{{ chat.id }}" data-feedback="ban" {% if chat.feedback == 'ban' %}disabled{% endif %}>
+                                            <i class="fas fa-ban"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <!-- OpenAI Response -->
+                                <div class="response-card">
+                                    <div class="response-card-header">
+                                        <h6>OpenAI 回應</h6>
+                                        <button class="prefer-response-btn" 
+                                                data-chat-id="{{ chat.id }}" 
+                                                data-model="openai"
+                                                {% if chat.preferred_response == 'openai' %}disabled{% endif %}>
+                                            {% if chat.preferred_response == 'openai' %}
+                                                ✓ 已選為較佳回應
+                                            {% else %}
+                                                選為較佳回應
+                                            {% endif %}
+                                        </button>
+                                    </div>
+                                    <div class="card-body">
+                                        {{ chat.openai_response | safe }}
+                                    </div>
+                                    <div class="feedback-buttons">
+                                        <button class="feedback-btn like" data-chat-id="{{ chat.id }}" data-feedback="like" {% if chat.feedback == 'like' %}disabled{% endif %}>
+                                            <i class="fas fa-thumbs-up"></i>
+                                        </button>
+                                        <button class="feedback-btn dislike" data-chat-id="{{ chat.id }}" data-feedback="dislike" {% if chat.feedback == 'dislike' %}disabled{% endif %}>
+                                            <i class="fas fa-thumbs-down"></i>
+                                        </button>
+                                        <button class="feedback-btn ban" data-chat-id="{{ chat.id }}" data-feedback="ban" {% if chat.feedback == 'ban' %}disabled{% endif %}>
+                                            <i class="fas fa-ban"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <button class="scroll-indicator scroll-right" onclick="scrollResponses(this, 1)">
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+                    {% elif chat.message_type == 'summary' %}
+                        <!-- Summary Message -->
                         <div class="chat-entry">
-                            <small class="timestamp">{{ format_local_time(entry.created_at) }}</small>
-                            <div class="summary">{{ entry.response|safe }}</div>
+                            <div class="chat-qa">
+                                <div class="chat-answer">
+                                    <strong>諮詢總結：</strong><br>
+                                    {{ chat.response | safe }}
+                                </div>
+                            </div>
+                            <small class="text-muted">{{ format_local_time(chat.created_at) }}</small>
                         </div>
                     {% endif %}
                 {% endfor %}
@@ -379,7 +544,7 @@
                 <div class="rating-group">
                     <label>準確性</label>
                     <div class="star-rating">
-                        {% for i in range(1, 6) %}
+                        {% for i in range(5, 0, -1) %}
                         <input type="radio" id="accuracy{{ i }}" name="accuracy" value="{{ i }}" required>
                         <label for="accuracy{{ i }}"><i class="fas fa-star"></i></label>
                         {% endfor %}
@@ -389,7 +554,7 @@
                 <div class="rating-group">
                     <label>可信度</label>
                     <div class="star-rating">
-                        {% for i in range(1, 6) %}
+                        {% for i in range(5, 0, -1) %}
                         <input type="radio" id="trustworthiness{{ i }}" name="trustworthiness" value="{{ i }}" required>
                         <label for="trustworthiness{{ i }}"><i class="fas fa-star"></i></label>
                         {% endfor %}
@@ -399,7 +564,7 @@
                 <div class="rating-group">
                     <label>同理心</label>
                     <div class="star-rating">
-                        {% for i in range(1, 6) %}
+                        {% for i in range(5, 0, -1) %}
                         <input type="radio" id="empathy{{ i }}" name="empathy" value="{{ i }}" required>
                         <label for="empathy{{ i }}"><i class="fas fa-star"></i></label>
                         {% endfor %}
@@ -434,5 +599,92 @@
             {% endif %}
         </div>
     </div>
+
+    <!-- JavaScript for Response Preference -->
+    <script>
+    $(document).ready(function() {
+        // Handle response preference
+        $('.prefer-response-btn').click(function() {
+            const chatId = $(this).data('chat-id');
+            const model = $(this).data('model');
+            
+            $.ajax({
+                url: '/admin/chat/prefer-response',
+                method: 'POST',
+                data: { chat_id: chatId, model: model },
+                success: function(response) {
+                    if (response.status === 'success') {
+                        // Disable clicked button
+                        $(`.prefer-response-btn[data-chat-id="${chatId}"]`).prop('disabled', false);
+                        $(`.prefer-response-btn[data-chat-id="${chatId}"][data-model="${model}"]`)
+                            .prop('disabled', true)
+                            .text('✓ 已選為較佳回應');
+                    }
+                },
+                error: function() {
+                    alert('更新偏好時發生錯誤，請稍後再試。');
+                }
+            });
+        });
+
+        // Handle feedback buttons
+        $('.feedback-btn').click(function() {
+            const chatId = $(this).data('chat-id');
+            const feedback = $(this).data('feedback');
+            const button = $(this);
+            
+            $.ajax({
+                url: '/admin/feedback/' + chatId,
+                method: 'POST',
+                data: { feedback: feedback },
+                success: function(response) {
+                    if (response.status === 'success') {
+                        // Enable all feedback buttons for this chat
+                        $(`.feedback-btn[data-chat-id="${chatId}"]`).prop('disabled', false);
+                        // Disable only the clicked button
+                        button.prop('disabled', true);
+                    }
+                },
+                error: function() {
+                    alert('提交回饋時發生錯誤，請稍後再試。');
+                }
+            });
+        });
+    });
+    </script>
+
+    <!-- Add JavaScript for horizontal scrolling -->
+    <script>
+    function scrollResponses(button, direction) {
+        const container = button.parentElement.querySelector('.response-comparison');
+        const scrollAmount = container.offsetWidth * 0.8 * direction;
+        container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+    }
+
+    // Show/hide scroll indicators based on scroll position
+    document.querySelectorAll('.response-comparison').forEach(container => {
+        const updateScrollButtons = () => {
+            const parent = container.parentElement;
+            const leftButton = parent.querySelector('.scroll-left');
+            const rightButton = parent.querySelector('.scroll-right');
+            
+            if (container.scrollLeft <= 0) {
+                leftButton.style.opacity = '0.3';
+            } else {
+                leftButton.style.opacity = '1';
+            }
+            
+            if (container.scrollLeft + container.offsetWidth >= container.scrollWidth) {
+                rightButton.style.opacity = '0.3';
+            } else {
+                rightButton.style.opacity = '1';
+            }
+        };
+
+        container.addEventListener('scroll', updateScrollButtons);
+        window.addEventListener('resize', updateScrollButtons);
+        updateScrollButtons(); // Initial state
+    });
+    </script>
 </body>
 </html>
