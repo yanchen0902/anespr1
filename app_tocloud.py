@@ -691,23 +691,47 @@ def chat():
             gemini_response = get_bot_response(message, patient_info)
             openai_response = get_openai_response(message, patient_info)
             
-            # Save chat history with both responses
+            # Save chat history with both responses - SIMPLIFIED VERSION
             try:
-                db.session.begin_nested()  # Create savepoint
+                # Log details before saving
+                logger.info(f"Attempting to save chat entry - Details:")
+                logger.info(f"Patient ID: {patient_id}")
+                logger.info(f"Message: {message[:50]}...")
+                logger.info(f"Gemini response: {gemini_response[:50]}...")
+                logger.info(f"OpenAI response: {openai_response[:50]}...")
+                
+                # Create the chat history entry
                 chat = ChatHistory(
                     patient_id=patient_id,
                     message=message,
                     response=gemini_response,
                     openai_response=openai_response,
-                    message_type='chat'
+                    message_type='chat',
+                    created_at=datetime.utcnow()  # Explicitly set timestamp
                 )
+                
+                # Important: Add and commit in separate steps with verification
                 db.session.add(chat)
+                db.session.flush()  # Get the ID without committing
+                chat_id = chat.id
+                logger.info(f"Chat entry flushed with ID: {chat_id}")
+                
+                # Now commit to finalize the transaction
                 db.session.commit()
-                logger.info(f"Chat history saved for patient {patient_id}")
+                logger.info(f"💾 Chat history committed to database, ID={chat_id}")
+                
+                # Verify the entry exists in a NEW session to confirm persistence
+                with db.session.no_autoflush:
+                    verification = db.session.query(ChatHistory).get(chat_id)
+                    if verification:
+                        logger.info(f"✅ Verified chat entry exists in database: ID={chat_id}")
+                    else:
+                        logger.error(f"❌ Could not verify chat entry: ID={chat_id}")
+                
             except Exception as e:
-                logger.error(f"Error saving chat history: {str(e)}", exc_info=True)
+                logger.error(f"❌ Error saving chat history: {str(e)}", exc_info=True)
                 db.session.rollback()
-                raise
+                # Do not re-raise the exception to prevent cascading failures
             
             return jsonify({'response': gemini_response})
             
@@ -1157,6 +1181,8 @@ def evaluate_chatbot(id):
         db.session.rollback()
     
     return redirect(url_for('patient_detail', id=id))
+
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.getenv('PORT', 8080)), debug=True)
