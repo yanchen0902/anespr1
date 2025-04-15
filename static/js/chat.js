@@ -10,6 +10,10 @@ if (sessionStorage.getItem('userId')) {
 // Add current_step variable to track chat state
 let current_step = sessionStorage.getItem('current_step') || 'initial';
 
+// Add variables to store multiple selections
+let selectedWorries = [];
+let selectedMedicalHistory = [];
+
 function sendMessage(message = '') {
     // Clear input if it exists
     const userInput = document.getElementById('user-input');
@@ -92,6 +96,13 @@ function sendMessage(message = '') {
                 return;
             }
 
+            // Show operation buttons when asking about operation
+            if (responseText.includes('什麼手術') && !responseText.includes('資訊摘要')) {
+                showButtons('operation-buttons');
+                document.getElementById('user-input').placeholder = '請選擇或輸入手術類型...';
+                return;
+            }
+
             // Show worry buttons when asking about concerns
             if (responseText.includes('擔心什麼') && !responseText.includes('資訊摘要')) {
                 showButtons('worry-buttons');
@@ -135,6 +146,7 @@ function hideAllButtons() {
         'sex-buttons',
         'cfs-buttons',
         'medical-history-buttons',
+        'operation-buttons',
         'worry-buttons',
         'question-buttons'
     ];
@@ -207,11 +219,127 @@ function selectCFS(answer) {
 }
 
 function selectMedicalHistory(history) {
-    sendMessage(history);
+    const button = event.currentTarget;
+    if (history === '沒有') {
+        // If "沒有" is selected, clear all other selections
+        selectedMedicalHistory = ['沒有'];
+        // Reset all button styles except the current one
+        const buttons = document.querySelectorAll('#medical-history-buttons .option-button');
+        buttons.forEach(btn => {
+            btn.style.backgroundColor = '';
+            btn.style.color = '';
+        });
+        button.style.backgroundColor = '#007bff';
+        button.style.color = 'white';
+        // Send immediately when "沒有" is selected
+        sendMessage('沒有');
+    } else {
+        // Remove "沒有" if it exists when selecting other conditions
+        const index = selectedMedicalHistory.indexOf('沒有');
+        if (index > -1) {
+            selectedMedicalHistory.splice(index, 1);
+            // Reset "沒有" button style
+            const noHistoryBtn = document.querySelector('#medical-history-buttons .option-button:first-child');
+            if (noHistoryBtn) {
+                noHistoryBtn.style.backgroundColor = '';
+                noHistoryBtn.style.color = '';
+            }
+        }
+        
+        // Toggle selection
+        const index2 = selectedMedicalHistory.indexOf(history);
+        if (index2 > -1) {
+            selectedMedicalHistory.splice(index2, 1);
+            button.style.backgroundColor = '';
+            button.style.color = '';
+        } else {
+            selectedMedicalHistory.push(history);
+            button.style.backgroundColor = '#007bff';
+            button.style.color = 'white';
+        }
+    }
+    
+    // Add send button if not exists
+    addSendButtonIfNeeded('medical-history-buttons', selectedMedicalHistory);
 }
 
 function selectWorry(worry) {
-    sendMessage(worry);
+    const button = event.currentTarget;
+    if (worry === '沒有特別擔心') {
+        // If "沒有特別擔心" is selected, clear all other selections
+        selectedWorries = ['沒有特別擔心'];
+        // Reset all button styles except the current one
+        const buttons = document.querySelectorAll('#worry-buttons .option-button');
+        buttons.forEach(btn => {
+            btn.style.backgroundColor = '';
+            btn.style.color = '';
+        });
+        button.style.backgroundColor = '#007bff';
+        button.style.color = 'white';
+        // Send immediately when "沒有特別擔心" is selected
+        sendMessage('沒有特別擔心');
+    } else {
+        // Remove "沒有特別擔心" if it exists when selecting other worries
+        const index = selectedWorries.indexOf('沒有特別擔心');
+        if (index > -1) {
+            selectedWorries.splice(index, 1);
+            // Reset "沒有特別擔心" button style
+            const noWorryBtn = document.querySelector('#worry-buttons .option-button:last-child');
+            if (noWorryBtn) {
+                noWorryBtn.style.backgroundColor = '';
+                noWorryBtn.style.color = '';
+            }
+        }
+        
+        // Toggle selection
+        const index2 = selectedWorries.indexOf(worry);
+        if (index2 > -1) {
+            selectedWorries.splice(index2, 1);
+            button.style.backgroundColor = '';
+            button.style.color = '';
+        } else {
+            selectedWorries.push(worry);
+            button.style.backgroundColor = '#007bff';
+            button.style.color = 'white';
+        }
+    }
+    
+    // Add send button if not exists
+    addSendButtonIfNeeded('worry-buttons', selectedWorries);
+}
+
+function addSendButtonIfNeeded(containerId, selectedItems) {
+    const container = document.getElementById(containerId);
+    let sendButton = container.querySelector('.send-selections-button');
+    
+    if (selectedItems.length > 0 && !sendButton) {
+        sendButton = document.createElement('button');
+        sendButton.className = 'send-selections-button option-button';
+        sendButton.innerHTML = '<span class="emoji">✉️</span> 送出選擇';
+        sendButton.onclick = () => {
+            const message = selectedItems.join('、');
+            // Reset selections
+            if (containerId === 'medical-history-buttons') {
+                selectedMedicalHistory = [];
+            } else {
+                selectedWorries = [];
+            }
+            // Send message and remove send button
+            sendMessage(message);
+            sendButton.remove();
+        };
+        container.appendChild(sendButton);
+    } else if (selectedItems.length === 0 && sendButton) {
+        sendButton.remove();
+    }
+}
+
+function selectOperation(operation) {
+    sendMessage(operation);
+}
+
+function selectOperation(operation) {
+    sendMessage(operation);
 }
 
 function startNewPatient() {

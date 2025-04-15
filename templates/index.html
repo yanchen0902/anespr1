@@ -37,6 +37,18 @@
             background-color: #ffdddd;
             animation: pulse 1.5s infinite;
         }
+        .send-selections-button {
+            margin-top: 10px;
+            background-color: #28a745 !important;
+            color: white !important;
+        }
+        .send-selections-button:hover {
+            background-color: #218838 !important;
+        }
+        .option-button.selected {
+            background-color: #007bff !important;
+            color: white !important;
+        }
         @keyframes pulse {
             0% { opacity: 1; }
             50% { opacity: 0.5; }
@@ -125,6 +137,24 @@
                     </button>
                     <button onclick="selectMedicalHistory('心臟病')" class="option-button">
                         <span class="emoji">❤️</span> 心臟病
+                    </button>
+                </div>
+                
+                <div id="operation-buttons" style="display: none;" class="button-group">
+                    <button onclick="selectOperation('心臟手術')" class="option-button">
+                        <span class="emoji">❤️</span> 心
+                    </button>
+                    <button onclick="selectOperation('肺臟手術')" class="option-button">
+                        <span class="emoji">🫁</span> 肺
+                    </button>
+                    <button onclick="selectOperation('肝臟手術')" class="option-button">
+                        <span class="emoji">🫓</span> 肝
+                    </button>
+                    <button onclick="selectOperation('腎臟手術')" class="option-button">
+                        <span class="emoji">🫘</span> 腎
+                    </button>
+                    <button onclick="selectOperation('骨折手術')" class="option-button">
+                        <span class="emoji">🦴</span> 骨折
                     </button>
                 </div>
                 
