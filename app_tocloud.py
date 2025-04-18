@@ -151,15 +151,9 @@ def save_chat_history(patient_id, message, response, message_type='chat'):
         raise
 
 def create_or_find_patient(name):
-    """Create new patient or find existing one"""
+    """Create a new patient"""
     try:
-        # Try to find existing patient
-        patient = Patient.query.filter_by(name=name).first()
-        if patient:
-            logger.info(f"Found existing patient: {patient.id}")
-            return patient
-            
-        # Create new patient if not found
+        # Create new patient
         patient = Patient(name=name)
         db.session.add(patient)
         db.session.commit()
@@ -215,13 +209,13 @@ def handle_patient_info(user_id, step, message):
             info['cfs'] = message
             session[user_id]['current_step'] = 'operation'
             session.modified = True
-            return "請問您預計進行什麼手術？"
+            return "請問您預計進行什麼手術？（若手術部位為選項之外請輸入手術名稱）"
             
         elif step == 'operation':
             info['operation'] = message
             session[user_id]['current_step'] = 'medical_history'
             session.modified = True
-            return "請問您有什麼慢性病史嗎？"
+            return "請問您有什麼慢性病史嗎？(可複選，若不在選項之種，請輸入文字)"
             
         elif step == 'medical_history':
             info['medical_history'] = message

@@ -14,6 +14,23 @@ let current_step = sessionStorage.getItem('current_step') || 'initial';
 let selectedWorries = [];
 let selectedMedicalHistory = [];
 
+function resetButtonStates() {
+    // Reset all button colors
+    const allButtons = document.querySelectorAll('.option-button');
+    allButtons.forEach(btn => {
+        btn.style.backgroundColor = '';
+        btn.style.color = '';
+    });
+    
+    // Reset selection arrays
+    selectedWorries = [];
+    selectedMedicalHistory = [];
+    
+    // Remove any send selection buttons
+    const sendButtons = document.querySelectorAll('.send-selections-button');
+    sendButtons.forEach(btn => btn.remove());
+}
+
 function sendMessage(message = '') {
     // Clear input if it exists
     const userInput = document.getElementById('user-input');
@@ -103,6 +120,13 @@ function sendMessage(message = '') {
                 return;
             }
 
+            // Show fracture options when asking about fracture location
+            if (responseText.includes('骨折位置') && !responseText.includes('資訊摘要')) {
+                showButtons('fracture-options');
+                document.getElementById('user-input').placeholder = '請選擇骨折位置...';
+                return;
+            }
+
             // Show worry buttons when asking about concerns
             if (responseText.includes('擔心什麼') && !responseText.includes('資訊摘要')) {
                 showButtons('worry-buttons');
@@ -147,6 +171,7 @@ function hideAllButtons() {
         'cfs-buttons',
         'medical-history-buttons',
         'operation-buttons',
+        'fracture-options',
         'worry-buttons',
         'question-buttons'
     ];
@@ -308,6 +333,14 @@ function selectWorry(worry) {
     addSendButtonIfNeeded('worry-buttons', selectedWorries);
 }
 
+function selectFractureLocation(location) {
+    // Hide fracture options
+    document.getElementById('fracture-options').style.display = 'none';
+    
+    // Send the selected fracture location
+    sendMessage(location);
+}
+
 function addSendButtonIfNeeded(containerId, selectedItems) {
     const container = document.getElementById(containerId);
     let sendButton = container.querySelector('.send-selections-button');
@@ -343,16 +376,12 @@ function selectOperation(operation) {
 }
 
 function startNewPatient() {
-    // Clear session storage
-    sessionStorage.clear();
+    // Reset all selections and button states
+    resetButtonStates();
     
-    // Generate new user ID
-    userId = 'user-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
-    sessionStorage.setItem('userId', userId);
-    
-    // Reset current step
+    // Reset session storage
+    sessionStorage.removeItem('current_step');
     current_step = 'initial';
-    sessionStorage.setItem('current_step', current_step);
     
     // Clear chat messages
     const chatMessages = document.getElementById('chat-messages');
@@ -374,6 +403,12 @@ function startNewPatient() {
     
     // Send empty message to start new conversation
     sendMessage();
+}
+
+function showWorryButtons() {
+    document.getElementById('operation-buttons').style.display = 'none';
+    document.getElementById('fracture-options').style.display = 'none';
+    document.getElementById('worry-buttons').style.display = 'block';
 }
 
 // Add CSS for icon button and sidebar header
@@ -417,6 +452,7 @@ function goToSelfPay() {
 
 // When page loads, send empty message to get initial greeting
 window.onload = function() {
+    resetButtonStates();
     // Send empty message to get initial greeting if this is a new session
     if (current_step === 'initial') {
         sendMessage();

@@ -153,8 +153,25 @@
                     <button onclick="selectOperation('腎臟手術')" class="option-button">
                         <span class="emoji">🫘</span> 腎
                     </button>
-                    <button onclick="selectOperation('骨折手術')" class="option-button">
+                    <button onclick="showFractureOptions()" class="option-button" id="fracture-btn">
                         <span class="emoji">🦴</span> 骨折
+                    </button>
+                </div>
+                
+                <!-- Fracture location options (initially hidden) -->
+                <div id="fracture-options" style="display: none;" class="button-group">
+                    <div class="text-center mb-2">請選擇骨折的位置：</div>
+                    <button onclick="selectFractureLocation('上肢骨折')" class="option-button">
+                        <span class="emoji">💪</span> 上肢
+                    </button>
+                    <button onclick="selectFractureLocation('下肢骨折')" class="option-button">
+                        <span class="emoji">🦵</span> 下肢
+                    </button>
+                    <button onclick="selectFractureLocation('肋骨骨折')" class="option-button">
+                        <span class="emoji">🫁</span> 肋骨
+                    </button>
+                    <button onclick="selectFractureLocation('脊椎骨折')" class="option-button">
+                        <span class="emoji">🦴</span> 脊椎
                     </button>
                 </div>
                 
@@ -310,6 +327,19 @@
             
             console.log('Voice functionality initialized');
         });
+        
+        // Function to show fracture options
+        function showFractureOptions() {
+            // Hide all other button groups
+            hideAllButtons();
+            
+            // Show fracture options
+            document.getElementById('fracture-options').style.display = 'flex';
+            document.getElementById('fracture-options').classList.add('visible');
+            
+            // Scroll to bottom after showing options
+            scrollToBottom();
+        }
     </script>
     <script src="{{ url_for('static', filename='js/chat.js') }}"></script>
 </body>
