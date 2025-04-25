@@ -256,7 +256,7 @@
                             <th>提問內容</th>
                             <th>API 評價</th>
                             <th>較佳回應</th>
-                            <th class="scores-cell">評分 (準確性/可信度/同理心)</th>
+                            <th class="scores-cell">評分 (符合醫療常規/語意流暢度/同理心)</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -287,8 +287,8 @@
                             </td>
                             <td class="scores-cell">
                                 {% if item.patient_id in evaluations %}
-                                <span class="score">準確性: {{ evaluations[item.patient_id].accuracy }}</span> / 
-                                <span class="score">可信度: {{ evaluations[item.patient_id].trust }}</span> / 
+                                <span class="score">符合醫療常規: {{ evaluations[item.patient_id].accuracy }}</span> / 
+                                <span class="score">語意流暢度: {{ evaluations[item.patient_id].trust }}</span> / 
                                 <span class="score">同理心: {{ evaluations[item.patient_id].empathy }}</span>
                                 {% else %}
                                 <span class="badge badge-none">未評分</span>

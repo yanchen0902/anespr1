@@ -549,10 +549,10 @@
         </div>
 
         <div class="detail-card">
-            <h2>評估對話品質</h2>
+            <h2>評估AI回覆品質</h2>
             <form action="{{ url_for('evaluate_chatbot', id=patient.id) }}" method="post" class="evaluation-form">
                 <div class="rating-group">
-                    <label>準確性</label>
+                    <label>符合醫療常規</label>
                     <div class="star-rating">
                         {% for i in range(5, 0, -1) %}
                         <input type="radio" id="accuracy{{ i }}" name="accuracy" value="{{ i }}" required>
@@ -562,7 +562,7 @@
                 </div>
 
                 <div class="rating-group">
-                    <label>可信度</label>
+                    <label>語意流暢度</label>
                     <div class="star-rating">
                         {% for i in range(5, 0, -1) %}
                         <input type="radio" id="trustworthiness{{ i }}" name="trustworthiness" value="{{ i }}" required>
@@ -595,8 +595,8 @@
                 {% for eval in patient.evaluations %}
                 <div class="evaluation-entry">
                     <div class="scores">
-                        <span>準確性: {{ eval.accuracy_score }}/5</span>
-                        <span>可信度: {{ eval.trustworthiness_score }}/5</span>
+                        <span>符合醫療常規: {{ eval.accuracy_score }}/5</span>
+                        <span>語意流暢度: {{ eval.trustworthiness_score }}/5</span>
                         <span>同理心: {{ eval.empathy_score }}/5</span>
                     </div>
                     {% if eval.comments %}
