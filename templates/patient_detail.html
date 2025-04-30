@@ -549,8 +549,31 @@
         </div>
 
         <div class="detail-card">
+            <!-- Template updated: {{ now }} -->
             <h2>評估AI回覆品質</h2>
             <form action="{{ url_for('evaluate_chatbot', id=patient.id) }}" method="post" class="evaluation-form">
+                <div class="rating-group">
+                    <label>評估者</label>
+                    <select name="evaluator_name" required class="form-control">
+                        <option value="" disabled selected>請選擇評估者</option>
+                        <option value="林士涵醫師">林士涵醫師</option>
+                        <option value="王逸萍醫師">王逸萍醫師</option>
+                        <option value="張敬道醫師">張敬道醫師</option>
+                        <option value="吳宗達醫師">吳宗達醫師</option>
+                        <option value="鄧筱君醫師">鄧筱君醫師</option>
+                        <option value="賴思汝醫師">賴思汝醫師</option>
+                        <option value="陳賓信醫師">陳賓信醫師</option>
+                        <option value="陳欣亭醫師">陳欣亭醫師</option>
+                        <option value="巫鎮和醫師">巫鎮和醫師</option>
+                        <option value="林姿君醫師">林姿君醫師</option>
+                        <option value="陳柏思醫師">陳柏思醫師</option>
+                        <option value="吳峻宇醫師">吳峻宇醫師</option>
+                        <option value="陳品儒醫師">陳品儒醫師</option>
+                        <option value="吳佳靜醫師">吳佳靜醫師</option>
+                        <option value="賴彥宏醫師">賴彥宏醫師</option>
+                        <option value="其他醫師">其他醫師</option>
+                    </select>
+                </div>
                 <div class="rating-group">
                     <label>符合醫療常規</label>
                     <div class="star-rating">
@@ -602,7 +625,12 @@
                     {% if eval.comments %}
                     <div class="comments">{{ eval.comments }}</div>
                     {% endif %}
-                    <div class="eval-meta">評估時間: {{ format_local_time(eval.evaluated_at) }}</div>
+                    <div class="eval-meta">
+                        評估時間: {{ format_local_time(eval.evaluated_at) }}
+                        {% if eval.evaluator_name %}
+                        <span class="evaluator">評估者: {{ eval.evaluator_name }}</span>
+                        {% endif %}
+                    </div>
                 </div>
                 {% endfor %}
             </div>

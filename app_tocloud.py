@@ -26,6 +26,7 @@ load_dotenv()
 app = Flask(__name__)
 app.config['JSON_AS_ASCII'] = False  # Ensure proper UTF-8 handling
 app.config['DEBUG'] = True  # Enable debug mode
+app.config['TEMPLATES_AUTO_RELOAD'] = True  # Force templates to reload
 app.secret_key = 'anespr1-secret-key'
 
 # Initialize database
@@ -1024,7 +1025,8 @@ def patient_detail(id):
             'patient_detail.html',
             patient=patient,
             chat_history=grouped_history,
-            format_local_time=format_local_time
+            format_local_time=format_local_time,
+            now=datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')  # Add timestamp to force reload
         )
     except Exception as e:
         logger.error(f"Error viewing patient details: {str(e)}", exc_info=True)
@@ -1135,11 +1137,13 @@ def feedback_stats():
         
         # Get evaluation data keyed by patient_id
         evaluations = {}
+        # Get evaluation data with evaluator names
         eval_results = db.session.query(
             ChatbotEvaluation.patient_id,
             func.avg(ChatbotEvaluation.accuracy_score).label('avg_accuracy'),
             func.avg(ChatbotEvaluation.trustworthiness_score).label('avg_trust'),
-            func.avg(ChatbotEvaluation.empathy_score).label('avg_empathy')
+            func.avg(ChatbotEvaluation.empathy_score).label('avg_empathy'),
+            func.group_concat(ChatbotEvaluation.evaluator_name.distinct()).label('evaluators')
         ).group_by(
             ChatbotEvaluation.patient_id
         ).all()
@@ -1148,7 +1152,8 @@ def feedback_stats():
             evaluations[result.patient_id] = {
                 'accuracy': round(result.avg_accuracy, 1) if result.avg_accuracy else 'N/A',
                 'trust': round(result.avg_trust, 1) if result.avg_trust else 'N/A',
-                'empathy': round(result.avg_empathy, 1) if result.avg_empathy else 'N/A'
+                'empathy': round(result.avg_empathy, 1) if result.avg_empathy else 'N/A',
+                'evaluators': result.evaluators.split(',') if result.evaluators else []
             }
         
         return render_template(
@@ -1169,6 +1174,7 @@ def evaluate_chatbot(id):
         evaluation = ChatbotEvaluation(
             patient_id=id,
             evaluated_by=current_user.id,
+            evaluator_name=request.form.get('evaluator_name'),
             accuracy_score=int(request.form['accuracy']),
             trustworthiness_score=int(request.form['trustworthiness']),
             empathy_score=int(request.form['empathy']),

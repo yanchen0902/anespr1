@@ -290,6 +290,15 @@
                                 <span class="score">符合醫療常規: {{ evaluations[item.patient_id].accuracy }}</span> / 
                                 <span class="score">語意流暢度: {{ evaluations[item.patient_id].trust }}</span> / 
                                 <span class="score">同理心: {{ evaluations[item.patient_id].empathy }}</span>
+                                <div class="evaluators-list">
+                                    <small>評估者: 
+                                    {% if evaluations[item.patient_id].evaluators %}
+                                        {{ evaluations[item.patient_id].evaluators|join(", ") }}
+                                    {% else %}
+                                        未記錄評估者
+                                    {% endif %}
+                                    </small>
+                                </div>
                                 {% else %}
                                 <span class="badge badge-none">未評分</span>
                                 {% endif %}

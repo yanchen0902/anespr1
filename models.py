@@ -89,6 +89,7 @@ class ChatbotEvaluation(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     patient_id = db.Column(db.Integer, db.ForeignKey('patient.id'), nullable=False)
     evaluated_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    evaluator_name = db.Column(db.String(100))
     accuracy_score = db.Column(db.Integer, nullable=False)
     trustworthiness_score = db.Column(db.Integer, nullable=False)
     empathy_score = db.Column(db.Integer, nullable=False)
