@@ -4,6 +4,32 @@
     <title>自費項目確認</title>
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/style.css') }}">
     <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+        }
+        
+        .recommended {
+            border: 2px solid #4285f4;
+            box-shadow: 0 0 10px rgba(66, 133, 244, 0.3);
+        }
+        
+        .recommendation-reason {
+            background-color: #e6f0ff;
+            padding: 8px 12px;
+            border-radius: 4px;
+            margin-top: 8px;
+            font-size: 14px;
+            color: #0066cc;
+        }
+        
+        .recommendation-icon {
+            margin-right: 6px;
+        }
+    </style>
 </head>
 <body>
     <div class="self-pay-container">
@@ -205,29 +231,164 @@
 
         // Auto-select items based on patient info
         window.onload = function() {
+            // @ts-ignore - Suppress IDE warnings for Jinja2 template syntax
+            // eslint-disable-next-line
             const patientInfo = {{ patient_info|tojson|safe }};
+            let recommendationReasons = {};
             
+            // --- Age-based recommendations ---
             if (patientInfo.age > 50) {
                 document.getElementById('depth_monitor').checked = true;
+                recommendationReasons['depth_monitor'] = '依據您的年齡推薦';
             }
             
+            // --- Clinical condition recommendations ---
             if (patientInfo.cfs && patientInfo.cfs.includes('>4')) {
                 document.getElementById('muscle_monitor').checked = true;
+                recommendationReasons['muscle_monitor'] = '依據您的身體狀況評估，有助於成功拔管不用去加護病房';
             }
             
+            // --- Worry-based recommendations ---
             if (patientInfo.worry) {
                 const worry = patientInfo.worry.toLowerCase();
-                if (worry.includes('痛')) {
+                
+                // Pain concerns
+                if (worry.includes('痛') || worry.includes('疼') || 
+                    worry.includes('不舒服') || worry.includes('難受')) {
                     document.getElementById('pca').checked = true;
+                    recommendationReasons['pca'] = '根據您提及的疼痛顧慮，建議使用自控式止痛';
                 }
-                if (worry.includes('冷')) {
+                
+                // Cold concerns
+                if (worry.includes('冷') || worry.includes('寒') || 
+                    worry.includes('發抖') || worry.includes('溫度')) {
                     document.getElementById('warming').checked = true;
+                    recommendationReasons['warming'] = '根據您提及的怕冷顧慮，建議使用溫毯';
                 }
-                if (worry.includes('暈')) {
+                
+                // Nausea concerns
+                if (worry.includes('暈') || worry.includes('嘔') || 
+                    worry.includes('吐') || worry.includes('噁心') || 
+                    worry.includes('想吐')) {
                     document.getElementById('anti_nausea').checked = true;
+                    recommendationReasons['anti_nausea'] = '根據您提及的暈眩顧慮，建議使用止吐藥';
+                }
+                
+                // Sleep/consciousness concerns
+                if (worry.includes('失眠') || worry.includes('睡眠') || 
+                    worry.includes('醒') || worry.includes('知覺') || 
+                    worry.includes('清醒') || worry.includes('意識')) {
+                    document.getElementById('depth_monitor').checked = true;
+                    recommendationReasons['depth_monitor'] = '根據您提及的麻醉/意識顧慮，建議使用麻醉深度監測';
                 }
             }
             
+            // --- Surgery type recommendations ---
+            if (patientInfo.operation) {
+                const operation = patientInfo.operation.toLowerCase();
+                
+                // Heart or major vascular surgeries
+                if (operation.includes('心') || operation.includes('冠狀') || 
+                    operation.includes('主動脈') || operation.includes('胸腔') || 
+                    operation.includes('血管') || operation.includes('搭橋')) {
+                    document.getElementById('brain_oxygen').checked = true;
+                    document.getElementById('depth_monitor').checked = true;
+                    document.getElementById('muscle_monitor').checked = true;
+                    recommendationReasons['brain_oxygen'] = '心臟手術特別建議使用腦血氧監測';
+                    recommendationReasons['depth_monitor'] = '心臟手術建議使用麻醉深度監測';
+                    recommendationReasons['muscle_monitor'] = '心臟手術建議肌肉監測，減少手術後肌肉痠痛';
+                }
+                
+                // Brain or neck surgeries
+                if (operation.includes('腦') || operation.includes('頸') || 
+                    operation.includes('顱') || operation.includes('頭')) {
+                    document.getElementById('brain_oxygen').checked = true;
+                    recommendationReasons['brain_oxygen'] = '腦部或頸部手術特別建議使用腦血氧監測';
+                }
+                
+                // Abdominal or orthopedic surgeries (typically longer)
+                if (operation.includes('腹') || operation.includes('胃') || 
+                    operation.includes('肝') || operation.includes('脾') || 
+                    operation.includes('腸') || operation.includes('骨') || 
+                    operation.includes('關節') || operation.includes('脊椎') || 
+                    operation.includes('髖部') || operation.includes('膝')) {
+                    document.getElementById('warming').checked = true;
+                    document.getElementById('pca').checked = true;
+                    recommendationReasons['warming'] = '預期手術時間較長，建議使用溫毯增加舒適度';
+                    recommendationReasons['pca'] = '此類手術術後疼痛感較強，建議使用自控式止痛';
+                }
+                
+                // Fracture or joint replacements
+                if (operation.includes('骨折') || operation.includes('關節置換') || 
+                    operation.includes('髖關節') || operation.includes('膝關節')) {
+                    document.getElementById('pca').checked = true;
+                    document.getElementById('muscle_monitor').checked = true;
+                    recommendationReasons['pca'] = '骨骼手術術後疼痛感較強，建議使用自控式止痛';
+                    recommendationReasons['muscle_monitor'] = '可幫助減輕骨骼手術後肌肉痠痛';
+                }
+            }
+            
+            // --- Medical history based recommendations ---
+            if (patientInfo.history) {
+                const history = patientInfo.history.toLowerCase();
+                
+                // Previous anesthesia issues
+                if (history.includes('麻醉') || history.includes('醒') || 
+                    history.includes('過敏') || history.includes('反應')) {
+                    document.getElementById('depth_monitor').checked = true;
+                    recommendationReasons['depth_monitor'] = '根據您的麻醉病史，建議使用麻醉深度監測';
+                }
+                
+                // Previous post-op nausea or vomiting
+                if (history.includes('噁心') || history.includes('嘔吐') || 
+                    history.includes('暈') || history.includes('吐')) {
+                    document.getElementById('anti_nausea').checked = true;
+                    recommendationReasons['anti_nausea'] = '根據您的病史，建議使用止吐藥';
+                }
+                
+                // Previous pain control issues
+                if (history.includes('痛') || history.includes('疼')) {
+                    document.getElementById('pca').checked = true;
+                    recommendationReasons['pca'] = '根據您過去的疼痛控制狀況，建議使用自控式止痛';
+                }
+                
+                // Cardiovascular conditions
+                if (history.includes('心') || history.includes('血壓') || 
+                    history.includes('中風') || history.includes('動脈') || 
+                    history.includes('冠狀')) {
+                    document.getElementById('brain_oxygen').checked = true;
+                    recommendationReasons['brain_oxygen'] = '根據您的心血管病史，建議使用腦血氧監測以增加安全性';
+                }
+                
+                // Diabetes or neuropathy
+                if (history.includes('糖尿') || history.includes('神經病變')) {
+                    document.getElementById('depth_monitor').checked = true;
+                    recommendationReasons['depth_monitor'] = '糖尿病患者建議使用麻醉深度監測';
+                }
+            }
+            
+            // Add explanation tooltips and highlight recommended items
+            for (let itemId in recommendationReasons) {
+                const itemElement = document.getElementById(itemId);
+                if (itemElement) {
+                    const itemCard = itemElement.closest('.item-card');
+                    const reason = recommendationReasons[itemId];
+                    
+                    // Add 'recommended' class to highlight the item
+                    itemCard.classList.add('recommended');
+                    
+                    // Add recommendation reason tooltip
+                    const reasonElement = document.createElement('div');
+                    reasonElement.className = 'recommendation-reason';
+                    reasonElement.innerHTML = '<span class="recommendation-icon">💡</span> ' + reason;
+                    
+                    // Insert after the description
+                    const description = itemCard.querySelector('.item-description');
+                    description.parentNode.insertBefore(reasonElement, description.nextSibling);
+                }
+            }
+            
+            // Update total after all selections
             updateTotal();
         };
     </script>

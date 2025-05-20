@@ -370,138 +370,19 @@ def format_response(response):
         logger.error(f"Error formatting response: {str(e)}", exc_info=True)
         return response  # Return original text if formatting fails
 
-def get_question_type(message):
-    """Determine the type of question based on keywords"""
-    message = message.lower()
-    
-    anesthesia_keywords = ['類型', '全身', '局部', '半身', '無痛', '清醒', '睡著']
-    preparation_keywords = ['準備', '禁食', '藥物', '注意', '戒菸', '抽菸', '吃藥']
-    risk_keywords = ['風險', '危險', '併發症', '副作用', '死亡', '意外', '醒來', '恢復']
-    self_pay_keywords = ['自費', '費用', '價格', '多少錢', '監測', '溫毯', '止吐']
-    
-    if any(keyword in message for keyword in anesthesia_keywords):
-        return 'anesthesia'
-    elif any(keyword in message for keyword in preparation_keywords):
-        return 'preparation'
-    elif any(keyword in message for keyword in risk_keywords):
-        return 'risk'
-    elif any(keyword in message for keyword in self_pay_keywords):
-        return 'self_pay'
-    else:
-        return 'general'
+# Import from our prompt templates module
+from prompt_templates import get_question_type
+
+# Import from our prompt templates module
+from prompt_templates import get_surgery_type
 
 def create_context(message, patient_info):
     """Create context for Gemini model with patient info and message"""
-    question_type = get_question_type(message)
+    # Import our get_prompt function which handles all template logic
+    from prompt_templates import get_prompt
     
-    # Base patient info section
-    patient_info_section = f"""### 病人資訊:
-姓名：{patient_info.get('name', '未知')}
-年齡：{patient_info.get('age', '未知')}
-性別：{patient_info.get('sex', '未知')}
-手術：{patient_info.get('operation', '未知')}
-行動：{patient_info.get('cfs', '未評估')}
-病史：{patient_info.get('medical_history', '無')}
-擔憂：{patient_info.get('worry', '無')}"""
-
-    # Different prompts for different question types
-    prompts = {
-        'anesthesia': f"""## Role: 麻醉諮詢助手
-### 回答原則:
-- 使用繁體中文，簡潔明瞭，盡量在200字以內
-- 專注於麻醉方式說明
-- 適當使用emoji說明過程
-- 除了下肢手術、剖腹產、泌尿科手術，其餘不考慮半身麻醉
-
-### 回答重點:
-- 建議的麻醉類型及原因
-- 麻醉過程簡要說明
-- 術中可能的感受
-
-{patient_info_section}
-
-問題: {message}""",
-
-        'preparation': f"""## Role: 麻醉諮詢助手
-### 回答原則:
-- 使用繁體中文，簡潔明瞭，盡量在200字以內
-- 重點式條列說明
-- 使用emoji強調重要事項
-- 除了下肢手術、剖腹產、泌尿科手術，其餘不考慮半身麻醉
-
-### 術前準備重點:
-- 禁食要求（固體8小時、清水2小時）
-- 需要停用的藥物(抗凝血藥物、糖尿病藥物)
-- 戒菸、運動
-- 個人化注意事項
-
-{patient_info_section}
-
-問題: {message}""",
-
-        'risk': f"""## Role: 麻醉諮詢助手
-### 回答原則:
-- 使用繁體中文，清楚說明，盡量在200字以內
-- 針對個人情況分析
-- 使用emoji緩和說明氣氛
-- 除了下肢手術、剖腹產、泌尿科手術，其餘不考慮半身麻醉
-
-### 風險評估重點:
-- 根據年齡和病史評估ASA等級
-- 衰弱者 ASA等級為3以上
-- 心臟手術者ASA等級為4
-- 可能發生的併發症
-- 如何降低風險：
-  * 解釋如何透過自費項目降低風險：
-     * 麻醉深度監測：降低術中知曉風險
-     * 最適肌張力：降低肌肉鬆弛劑相關併發症
-     * 體溫監測與保溫：降低低體溫併發症
-     * 止吐藥物：降低噁心嘔吐風險
-
-
-{patient_info_section}
-
-問題: {message}""",
-
-        'self_pay': f"""## Role: 麻醉諮詢助手
-### 回答原則:
-- 使用繁體中文，簡潔說明，盡量在200字以內
-- 針對性建議自費項目
-- 使用emoji增加親和力
-- 除了下肢手術、剖腹產、泌尿科手術，其餘不考慮半身麻醉
-
-### 自費建議規則:
-- 年齡>50或風險較高: 建議麻醉深度監測、最適肌張力
-- 擔心疼痛: 建議自控式止痛
-- 易暈或手術>2小時: 建議止吐藥、麻醉深度監測
-- 怕冷或手術>1小時: 建議溫毯
-- 焦慮或失眠: 建議麻醉深度監測
-- 心臟手術: 建議腦血氧監測
-
-{patient_info_section}
-
-問題: {message}""",
-
-        'general': f"""## Role: 麻醉諮詢助手
-### 回答原則:
-- 使用繁體中文，簡潔明瞭，盡量在300字以內
-- 專注於麻醉相關資訊
-- 適當使用emoji增加親和力
-- 根據問題重點回答
-- 除了下肢手術、剖腹產、泌尿科手術，其餘不考慮半身麻醉
-
-### 基本重點:
-- 術前準備說明
-- 麻醉方式相關解釋
-- 麻醉風險說明
-- 自費項目建議
-
-{patient_info_section}
-
-問題: {message}"""
-    }
-
-    return prompts.get(question_type, prompts['general'])
+    # Get the appropriate prompt using the prompt templates module
+    return get_prompt(message, patient_info)
 
 # Initialize Gemini API
 GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')
@@ -568,34 +449,54 @@ else:
     openai.api_key = OPENAI_API_KEY
 
 def get_openai_response(message, patient_info):
-    """Get response from OpenAI model"""
+    """Get response from OpenAI model (currently disabled due to billing)"""
     try:
-        if not openai.api_key:
-            logger.error("OpenAI API key not set")
-            return "抱歉，OpenAI API 金鑰未設定。"
-            
+        logger.info("OpenAI API calls disabled due to billing constraints")
+        
+        # Create context for logging purposes only
         context = create_context(message, patient_info)
-        logger.info("Sending request to OpenAI...")
+        logger.info(f"Would have sent the following context to OpenAI: {context[:100]}...")
         
-        response = openai.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": "你是一位專業的麻醉諮詢助手，請根據病人的資訊提供適當的建議。"},
-                {"role": "user", "content": context}
-            ],
-            temperature=0.7,
-            max_tokens=1000
+        # Return a standard response instead of calling the API
+        standard_response = (
+            "由於系統維護，目前暫時無法提供個人化的麻醉諮詢。\n\n"
+            "如果您有緊急的麻醉相關問題，請直接聯繫醫院麻醉科或您的主治醫師。\n\n"
+            "感謝您的理解與配合。"
         )
-        logger.info("Received response from OpenAI")
         
-        if not response or not response.choices:
-            logger.error("Empty response from OpenAI")
-            return "抱歉，OpenAI 回應為空。"
-            
-        return format_response(response.choices[0].message.content)
+        return format_response(standard_response)
     except Exception as e:
-        logger.error(f"Error getting OpenAI response: {str(e)}", exc_info=True)
-        return f"抱歉，OpenAI 回應出現錯誤：{str(e)}"
+        logger.error(f"Error in response generation: {str(e)}", exc_info=True)
+        return f"抱歉，系統回應出現錯誤：{str(e)}"
+#def get_openai_response(message, patient_info):
+   # """Get response from OpenAI model"""
+   # try:
+   #     if not openai.api_key:
+   #         logger.error("OpenAI API key not set")
+   #         return "抱歉，OpenAI API 金鑰未設定。"
+            
+   #     context = create_context(message, patient_info)
+   #     logger.info("Sending request to OpenAI...")
+        
+   #     response = openai.chat.completions.create(
+   #         model="gpt-3.5-turbo",
+   #         messages=[
+   #             {"role": "system", "content": "你是一位專業的麻醉諮詢助手，請根據病人的資訊提供適當的建議。"},
+   #             {"role": "user", "content": context}
+   #         ],
+   #         temperature=0.7,
+   #         max_tokens=1000
+   #     )
+   #     logger.info("Received response from OpenAI")
+        
+   #     if not response or not response.choices:
+   #         logger.error("Empty response from OpenAI")
+   #         return "抱歉，OpenAI 回應為空。"
+            
+   #     return format_response(response.choices[0].message.content)
+   # except Exception as e:
+   #     logger.error(f"Error getting OpenAI response: {str(e)}", exc_info=True)
+   #     return f"抱歉，OpenAI 回應出現錯誤：{str(e)}"
 
 @app.route('/')
 def home():
@@ -834,8 +735,6 @@ def submit_self_pay():
                         selected_at=utc_now()  # Use the new UTC function
                     )
                     db.session.add(item)
-            
-            # Save a final chat entry to mark completion
             save_chat_history(
                 patient_id=patient_id,
                 message="自費項目選擇完成",
