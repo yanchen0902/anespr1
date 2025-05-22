@@ -2,57 +2,113 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#FFF5F3">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="HandheldFriendly" content="true">
+    <meta name="format-detection" content="telephone=no">
     <title>麻醉諮詢助手 - 您的手術安心夥伴</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/apple-touch-icon.png') }}">
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
     <style>
         @keyframes blink {
             0% { opacity: 1; }
             50% { opacity: 0.5; }
             100% { opacity: 1; }
         }
+        
+        /* Prevent iOS text size adjust */
+        html {
+            -webkit-text-size-adjust: 100%;
+            -ms-text-size-adjust: 100%;
+            height: 100%;
+        }
+        
+        body {
+            min-height: 100%;
+            /* Use CSS custom property for viewport height */
+            min-height: calc(var(--vh, 1vh) * 100);
+        }
+        
         .voice-controls {
             display: flex;
             gap: 8px;
             margin-bottom: 10px;
             justify-content: center;
+            -webkit-tap-highlight-color: transparent;
         }
+        
         .voice-button {
             display: flex;
             align-items: center;
             gap: 4px;
-            padding: 5px 10px;
+            padding: 8px 12px;
             border: none;
             border-radius: 15px;
             background-color: #f0f0f0;
             color: #333;
-            font-size: 12px;
+            font-size: 13px;
             cursor: pointer;
             transition: background-color 0.3s;
+            -webkit-tap-highlight-color: rgba(0,0,0,0.1);
         }
-        .voice-button:hover {
+        
+        .voice-button:active {
             background-color: #e0e0e0;
+            transform: scale(0.98);
         }
+        
         .voice-button.recording {
             background-color: #ffdddd;
             animation: pulse 1.5s infinite;
         }
+        
         .send-selections-button {
             margin-top: 10px;
             background-color: #28a745 !important;
             color: white !important;
         }
-        .send-selections-button:hover {
+        
+        .send-selections-button:active {
             background-color: #218838 !important;
+            transform: scale(0.98);
         }
+        
+        .option-button {
+            transition: transform 0.1s, background-color 0.2s;
+        }
+        
+        .option-button:active {
+            transform: scale(0.98);
+        }
+        
         .option-button.selected {
             background-color: #007bff !important;
             color: white !important;
         }
+        
         @keyframes pulse {
             0% { opacity: 1; }
             50% { opacity: 0.5; }
             100% { opacity: 1; }
+        }
+        
+        /* Improve touch targets for iOS */
+        @supports (-webkit-touch-callout: none) {
+            /* Specific iOS fixes */
+            input, textarea, select, button {
+                font-size: 16px; /* Prevent iOS zoom on focus */
+            }
+            
+            /* Fix for iOS input zoom */
+            @media screen and (-webkit-min-device-pixel-ratio: 0) {
+                input, select, textarea {
+                    font-size: 16px !important;
+                }
+            }
         }
     </style>
 </head>
@@ -84,6 +140,11 @@
                 <a href="https://ct.org.tw/html/news/3-3.php?cat=43&article=1392992" target="_blank" class="info-button">
                     <span class="emoji">🧪</span> 腦血氧監測
                 </a>
+            </div>
+            <div class="fixed-bottom-button">
+                <button onclick="goToSelfPay()" class="self-pay-button">
+                    <span class="emoji">📝</span> 自費項目諮詢
+                </button>
             </div>
         </div>
         <div class="chat-container">
@@ -220,11 +281,6 @@
                 </div>
             </div>
         </div>
-    </div>
-    <div class="fixed-bottom-button">
-        <button onclick="goToSelfPay()" class="self-pay-button">
-            <span class="emoji">📝</span> 前往術中麻醉自費需求表
-        </button>
     </div>
     <script>
         // Voice interaction code

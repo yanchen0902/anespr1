@@ -231,7 +231,10 @@ function hideTextInput() {
 function scrollToBottom() {
     const chatMessages = document.getElementById('chat-messages');
     if (chatMessages) {
-        chatMessages.scrollTop = chatMessages.scrollHeight;
+        chatMessages.scrollTo({
+            top: chatMessages.scrollHeight,
+            behavior: 'smooth'
+        });
     }
 }
 
@@ -471,24 +474,19 @@ document.getElementById('user-input').addEventListener('keypress', function(e) {
 
 function addMessageToChat(role, message) {
     const chatMessages = document.getElementById('chat-messages');
+    if (!chatMessages) return;
+    
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${role}-message`;
+    messageDiv.innerHTML = message.replace(/\n/g, '<br>');
     
-    // Format API responses
-    if (role === 'bot' && message.includes('API Response')) {
-        messageDiv.classList.add('api-response');
-    }
+    // Add touch event for message actions (if needed)
+    messageDiv.addEventListener('touchstart', function(e) {
+        // Prevent text selection on long press
+        e.preventDefault();
+    }, { passive: false });
     
-    // Convert markdown links to HTML
-    message = message.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
-    
-    // Convert newlines to <br> tags
-    message = message.replace(/\n/g, '<br>');
-    
-    messageDiv.innerHTML = message;
     chatMessages.appendChild(messageDiv);
-    
-    // Scroll to bottom
     scrollToBottom();
 }
 
@@ -511,3 +509,86 @@ apiStyle.textContent = `
     }
 `;
 document.head.appendChild(apiStyle);
+
+// Add touch event listeners for better touch feedback
+document.addEventListener('DOMContentLoaded', function() {
+    // Add touch feedback for all buttons
+    const buttons = document.querySelectorAll('button, .button, .option-button');
+    buttons.forEach(button => {
+        // Add touch feedback class on touch start
+        button.addEventListener('touchstart', function() {
+            this.classList.add('touch-feedback');
+        }, { passive: true });
+        
+        // Remove touch feedback after a short delay
+        button.addEventListener('touchend', function() {
+            setTimeout(() => {
+                this.classList.remove('touch-feedback');
+            }, 150);
+        }, { passive: true });
+        
+        // Remove touch feedback if touch moves away
+        button.addEventListener('touchmove', function(e) {
+            const touch = e.touches[0];
+            const rect = this.getBoundingClientRect();
+            if (touch.clientX < rect.left || touch.clientX > rect.right || 
+                touch.clientY < rect.top || touch.clientY > rect.bottom) {
+                this.classList.remove('touch-feedback');
+            }
+        }, { passive: true });
+    });
+    
+    // Prevent zoom on double-tap
+    let lastTouchTime = 0;
+    document.addEventListener('touchend', function(event) {
+        const currentTime = new Date().getTime();
+        if (currentTime - lastTouchTime < 300) {
+            event.preventDefault();
+        }
+        lastTouchTime = currentTime;
+    }, { passive: false });
+    
+    // Improve scrolling in chat messages
+    const chatMessages = document.getElementById('chat-messages');
+    if (chatMessages) {
+        chatMessages.addEventListener('touchstart', function() {
+            this.style.overflowY = 'auto';
+            this.style.webkitOverflowScrolling = 'touch';
+        }, { passive: true });
+    }
+    
+    // Fix for iOS viewport height issue
+    function updateViewportHeight() {
+        const vh = window.innerHeight * 0.01;
+        document.documentElement.style.setProperty('--vh', `${vh}px`);
+    }
+    
+    // Update on load and orientation change
+    updateViewportHeight();
+    window.addEventListener('resize', updateViewportHeight);
+    window.addEventListener('orientationchange', updateViewportHeight);
+});
+
+// Add CSS for touch feedback
+const touchFeedbackStyle = document.createElement('style');
+touchFeedbackStyle.textContent = `
+    .touch-feedback {
+        opacity: 0.7;
+        transform: scale(0.98);
+        transition: opacity 0.1s, transform 0.1s;
+    }
+    
+    /* Prevent text selection on tap */
+    button, .button, .option-button {
+        -webkit-tap-highlight-color: rgba(0,0,0,0.1);
+        -webkit-touch-callout: none;
+        user-select: none;
+    }
+    
+    /* Smooth scrolling */
+    #chat-messages {
+        -webkit-overflow-scrolling: touch;
+        scroll-behavior: smooth;
+    }
+`;
+document.head.appendChild(touchFeedbackStyle);

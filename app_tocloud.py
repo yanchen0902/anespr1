@@ -80,15 +80,15 @@ def make_session_permanent():
     logger.info(f"Current session data: {dict(session)}")
 
 # 問題流程 - Preserved from original app_tocloud2.py
-questions = {
-    "name": "您好！我是您的麻醉諮詢助手。為了提供您最適合的建議，請讓我先了解一些基本資訊。請問您的大名是？",
-    "age": "請問您的年齡是？",
-    "sex": "請問您的性別是？",
-    "cfs": "您是否能夠自行外出，不需要他人協助？（是/否）",
-    "medical_history": "請問您有什麼重要的病史嗎？例如：高血壓、糖尿病、心臟病等。如果沒有，請回答「無」",
-    "operation": "請問您預計要進行什麼手術？",
-    "worry": "您最擔心什麼？您可以點選或輸入您的擔憂。如果沒有特別擔心的，請點選「沒有特別擔心」。"
-}
+# questions = {
+#     "name": "您好！我是您的麻醉諮詢助手。為了提供您最適合的建議，請讓我先了解一些基本資訊。請問您的大名是？",
+#     "age": "請問您的年齡是？",
+#     "sex": "請問您的性別是？",
+#     "cfs": "您是否能夠自行外出，不需要他人協助？（是/否）",
+#     "medical_history": "請問您有什麼重要的病史嗎？例如：高血壓、糖尿病、心臟病等。如果沒有，請回答「無」",
+#     "operation": "請問您預計要進行什麼手術？",
+#     "worry": "您最擔心什麼？您可以點選或輸入您的擔憂。如果沒有特別擔心的，請點選「沒有特別擔心」。"
+# }
 
 
 
@@ -216,7 +216,7 @@ def handle_patient_info(user_id, step, message):
             info['operation'] = message
             session[user_id]['current_step'] = 'medical_history'
             session.modified = True
-            return "請問您有什麼慢性病史嗎？(可複選，若不在選項之種，請輸入文字)"
+            return "請問您有什麼慢性病史嗎？(可複選，若不在選項之中，請輸入文字)"
             
         elif step == 'medical_history':
             info['medical_history'] = message
