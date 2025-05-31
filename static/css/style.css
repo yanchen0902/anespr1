@@ -1,10 +1,33 @@
+/* Theme Colors - Centralized color definitions */
+:root {
+    /* Primary Colors */
+    --color-primary: #E4A99B;       /* Main brand color (salmon/pink) */
+    --color-primary-light: #FFF5F3; /* Light background color */
+    --color-primary-dark: #D3988A;  /* Darker version of primary */
+    
+    /* Secondary Colors */
+    --color-secondary: #0084ff;     /* Secondary brand color (blue) */
+    --color-secondary-dark: #0056b3; /* Darker blue */
+    
+    /* UI Colors */
+    --color-success: #28a745;       /* Success color (green) */
+    --color-success-dark: #218838;  /* Darker green */
+    --color-text-main: #4A4A4A;     /* Main text color */
+    --color-text-light: #666666;    /* Lighter text color */
+    --color-background: #ffffff;    /* White background */
+    --color-button-default: #f0f2f5; /* Default button background */
+    --color-button-hover: #e4e6eb;  /* Button hover state */
+    --color-voice-button: #f0f0f0;  /* Voice button background */
+    --color-recording: #ffdddd;     /* Recording indicator */
+}
+
 /* Base styles */
 body {
     font-family: "Microsoft JhengHei", "微軟正黑體", sans-serif;
     margin: 0;
     padding: 0;
-    background-color: #FFF5F3;
-    color: #4A4A4A;
+    background-color: var(--color-primary-light);
+    color: var(--color-text-main);
     line-height: 1.6;
     -webkit-text-size-adjust: 100%;
     -webkit-font-smoothing: antialiased;
@@ -23,10 +46,33 @@ body {
 
 /* Header adjustments */
 header {
-    text-align: center;
     margin-bottom: 10px;
-    color: #E4A99B;
+    color: var(--color-primary);
     padding: 10px 0;
+}
+
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.left-spacer {
+    width: 120px; /* Match approximate width of voice controls */
+    flex-shrink: 1;
+}
+
+.title-container {
+    flex-grow: 1;
+    text-align: center;
+}
+
+.voice-controls {
+    width: 120px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    flex-shrink: 0;
 }
 
 h1 {
@@ -40,7 +86,7 @@ h1 {
     margin-top: 0;
     margin-bottom: 10px;
     font-size: 0.9em;
-    color: #E4A99B;
+    color: var(--color-primary);
 }
 
 /* Media queries for iPad and smaller screens */
@@ -66,7 +112,7 @@ h1 {
     display: flex;
     flex-direction: column;
     padding: 15px;
-    background-color: #fff;
+    background-color: var(--color-background);
     border-radius: 10px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     margin: 0;
@@ -103,7 +149,7 @@ button, .button, .option-button {
 }
 
 .option-button {
-    background-color: #f0f2f5;
+    background-color: var(--color-button-default);
     border: none;
     border-radius: 10px;
     padding: 12px 16px;
@@ -114,11 +160,11 @@ button, .button, .option-button {
     gap: 8px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     font-weight: 500;
-    color: #333;
+    color: var(--color-text-main);
 }
 
 .option-button:hover {
-    background-color: #e4e6eb;
+    background-color: var(--color-button-hover);
     transform: translateY(-1px);
 }
 
@@ -127,7 +173,7 @@ button, .button, .option-button {
 }
 
 .option-button.selected {
-    background-color: #0084ff;
+    background-color: var(--color-secondary);
     color: white;
 }
 
@@ -164,12 +210,12 @@ button, .button, .option-button {
     flex: 1;
     padding: 12px 16px;
     font-size: 16px;
-    border: 1px solid #ddd;
+    border: 1px solid var(--color-button-default);
     border-radius: 8px;
 }
 
 .send-button {
-    background-color: #0056b3;
+    background-color: var(--color-secondary-dark);
     color: white;
     border: none;
     border-radius: 8px;
@@ -180,7 +226,8 @@ button, .button, .option-button {
 }
 
 .send-button:hover {
-    background-color: #004494;
+    background-color: var(--color-secondary-dark);
+    filter: brightness(0.9);
 }
 
 /* Ensure consistency on iPad */
@@ -235,15 +282,15 @@ button, .button, .option-button {
 
 .bot-message {
     align-self: flex-start;
-    background-color: #f0f2f5;
-    color: #333;
+    background-color: var(--color-button-default);
+    color: var(--color-text-main);
     margin-right: auto;
     border-bottom-left-radius: 2px;
 }
 
 .user-message {
     align-self: flex-end;
-    background-color: #0084ff;
+    background-color: var(--color-secondary);
     color: white;
     margin-left: auto;
     border-bottom-right-radius: 2px;
@@ -349,7 +396,7 @@ button, .button, .option-button {
     justify-content: center;
     align-items: center;
     min-height: 100vh;
-    background-color: #FFF5F3;
+    background-color: var(--color-primary-light);
     padding: 20px;
 }
 
@@ -370,7 +417,7 @@ button, .button, .option-button {
 }
 
 .greeting-text {
-    color: #666;
+    color: var(--color-text-light);
     font-size: 1.2em;
     line-height: 1.6;
     margin-bottom: 30px;
@@ -386,7 +433,7 @@ button, .button, .option-button {
 .feature-item {
     padding: 15px;
     border-radius: 10px;
-    background: #f8f9fa;
+    background: var(--color-button-default);
     transition: transform 0.3s ease;
 }
 
@@ -402,7 +449,7 @@ button, .button, .option-button {
 
 .feature-item p {
     margin: 0;
-    color: #555;
+    color: var(--color-text-main);
 }
 
 .start-button {
@@ -410,7 +457,7 @@ button, .button, .option-button {
     align-items: center;
     justify-content: center;
     padding: 15px 40px;
-    background: linear-gradient(135deg, #E4A99B 0%, #d69485 100%);
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
     color: white;
     text-decoration: none;
     border-radius: 30px;
@@ -459,17 +506,17 @@ button, .button, .option-button {
 }
 
 .form-container h2 {
-    color: #0056b3;
+    color: var(--color-secondary);
     text-align: center;
     margin-bottom: 20px;
 }
 
 .patient-info {
-    background: #f8f9fa;
+    background: var(--color-button-default);
     padding: 15px;
     border-radius: 8px;
     margin-bottom: 20px;
-    border-left: 4px solid #0056b3;
+    border-left: 4px solid var(--color-secondary);
 }
 
 .self-pay-items {
@@ -480,7 +527,7 @@ button, .button, .option-button {
 }
 
 .item-card {
-    border: 1px solid #e0e0e0;
+    border: 1px solid var(--color-button-default);
     border-radius: 8px;
     padding: 15px;
     transition: all 0.3s ease;
@@ -507,24 +554,24 @@ button, .button, .option-button {
 .item-header label {
     flex: 1;
     font-weight: bold;
-    color: #333;
+    color: var(--color-text-main);
     cursor: pointer;
 }
 
 .price {
-    color: #0056b3;
+    color: var(--color-secondary);
     font-weight: bold;
 }
 
 .item-description {
-    color: #666;
+    color: var(--color-text-light);
     font-size: 0.9em;
     margin-left: 32px;
     white-space: pre-line;
 }
 
 .total-section {
-    background: #f8f9fa;
+    background: var(--color-button-default);
     padding: 20px;
     border-radius: 8px;
     margin: 20px 0;
@@ -534,7 +581,7 @@ button, .button, .option-button {
     text-align: right;
     font-size: 1.2em;
     font-weight: bold;
-    color: #0056b3;
+    color: var(--color-secondary);
 }
 
 .form-actions {
@@ -554,23 +601,23 @@ button, .button, .option-button {
 }
 
 .submit-button {
-    background-color: #0056b3;
+    background-color: var(--color-secondary);
     color: white;
 }
 
 .submit-button:hover {
-    background-color: #004494;
+    background-color: var(--color-secondary-dark);
     transform: translateY(-2px);
 }
 
 .back-button {
-    background-color: #f8f9fa;
-    color: #0056b3;
-    border: 2px solid #0056b3;
+    background-color: var(--color-button-default);
+    color: var(--color-secondary);
+    border: 2px solid var(--color-secondary);
 }
 
 .back-button:hover {
-    background-color: #e9ecef;
+    background-color: var(--color-button-hover);
     transform: translateY(-2px);
 }
 
@@ -580,6 +627,63 @@ button, .button, .option-button {
     display: flex;
     flex-direction: column;
     padding-bottom: 80px;  /* Add padding to make room for the button */
+}
+
+.sidebar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--color-button-default);
+}
+
+.sidebar-header h3 {
+    margin: 0;
+    font-size: 1.1em;
+    color: var(--color-primary);
+}
+
+.icon-button {
+    background-color: var(--color-button-default);
+    color: var(--color-primary);
+    border: none;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.icon-button:hover {
+    background-color: var(--color-button-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 3px 5px rgba(0,0,0,0.15);
+}
+
+.icon-button:active {
+    transform: translateY(1px);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.icon-button .emoji {
+    font-size: 18px;
+}
+
+.icon-image {
+    width: 25px;
+    height: 25px;
+    display: block;
+    filter: invert(65%) sepia(11%) saturate(1779%) hue-rotate(323deg) brightness(97%) contrast(88%);
+    transition: filter 0.3s ease;
+}
+
+.icon-button:hover .icon-image {
+    filter: invert(55%) sepia(16%) saturate(1779%) hue-rotate(323deg) brightness(92%) contrast(95%);
 }
 
 .fixed-bottom-button {
@@ -596,8 +700,8 @@ button, .button, .option-button {
 .self-pay-button {
     padding: 12px 20px;
     font-size: 1em;
-    color: #ffffff;
-    background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+    color: white;
+    background: linear-gradient(135deg, var(--color-success) 0%, var(--color-success-dark) 100%);
     border: none;
     border-radius: 10px;
     cursor: pointer;
@@ -611,7 +715,7 @@ button, .button, .option-button {
 }
 
 .self-pay-button:hover {
-    background: linear-gradient(135deg, #45a049 0%, #409444 100%);
+    background: linear-gradient(135deg, var(--color-success-dark) 0%, var(--color-success) 100%);
     transform: translateY(-2px);
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
 }
@@ -630,7 +734,7 @@ button, .button, .option-button {
     justify-content: center;
     align-items: center;
     min-height: 100vh;
-    background-color: #FFF5F3;
+    background-color: var(--color-primary-light);
 }
 
 .login-card {
@@ -644,7 +748,7 @@ button, .button, .option-button {
 
 .login-card h1 {
     text-align: center;
-    color: #E4A99B;
+    color: var(--color-primary);
     margin-bottom: 30px;
 }
 
@@ -655,13 +759,13 @@ button, .button, .option-button {
 .form-group label {
     display: block;
     margin-bottom: 5px;
-    color: #666;
+    color: var(--color-text-light);
 }
 
 .form-group input {
     width: 100%;
     padding: 10px;
-    border: 1px solid #ddd;
+    border: 1px solid var(--color-button-default);
     border-radius: 5px;
     font-size: 16px;
 }
@@ -669,7 +773,7 @@ button, .button, .option-button {
 .login-button {
     width: 100%;
     padding: 12px;
-    background: linear-gradient(135deg, #E4A99B 0%, #d69485 100%);
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
     color: white;
     border: none;
     border-radius: 5px;
@@ -687,9 +791,9 @@ button, .button, .option-button {
     padding: 15px;
     margin-bottom: 20px;
     border-radius: 5px;
-    color: #721c24;
-    background-color: #f8d7da;
-    border: 1px solid #f5c6cb;
+    color: var(--color-text-main);
+    background-color: var(--color-button-default);
+    border: 1px solid var(--color-button-default);
 }
 
 .patient-detail {
@@ -706,7 +810,7 @@ button, .button, .option-button {
 }
 
 .detail-card h2 {
-    color: #E4A99B;
+    color: var(--color-primary);
     margin-bottom: 20px;
     font-size: 1.4em;
 }
@@ -724,14 +828,14 @@ button, .button, .option-button {
 .detail-item label,
 .detail-text label {
     display: block;
-    color: #666;
+    color: var(--color-text-light);
     font-size: 0.9em;
     margin-bottom: 5px;
 }
 
 .detail-item p,
 .detail-text p {
-    color: #333;
+    color: var(--color-text-main);
     font-size: 1.1em;
     margin: 0;
 }
@@ -754,18 +858,18 @@ button, .button, .option-button {
 .self-pay-table td {
     padding: 12px;
     text-align: left;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid var(--color-button-default);
 }
 
 .self-pay-table th {
-    background: #f8f9fa;
+    background: var(--color-button-default);
     font-weight: 600;
-    color: #666;
+    color: var(--color-text-main);
 }
 
 .total-row {
     font-weight: bold;
-    background: #f8f9fa;
+    background: var(--color-button-default);
 }
 
 .total-row td {
@@ -781,7 +885,7 @@ button, .button, .option-button {
 }
 
 .button-container button {
-    background-color: #f0f2f5;
+    background-color: var(--color-button-default);
     border: none;
     border-radius: 20px;
     padding: 8px 16px;
@@ -795,7 +899,7 @@ button, .button, .option-button {
 }
 
 .button-container button:hover {
-    background-color: #e4e6eb;
+    background-color: var(--color-button-hover);
     transform: translateY(-1px);
 }
 
@@ -805,7 +909,7 @@ button, .button, .option-button {
 
 .input-container {
     padding: 15px;
-    border-top: 1px solid #e4e6eb;
+    border-top: 1px solid var(--color-button-default);
     background-color: white;
 }
 
@@ -821,7 +925,7 @@ button, .button, .option-button {
     flex: 1;
     min-width: 0; /* Prevent flex item from overflowing */
     padding: 10px 15px;
-    border: 1px solid #e4e6eb;
+    border: 1px solid var(--color-button-default);
     border-radius: 20px;
     font-size: 14px;
     outline: none;
@@ -830,7 +934,7 @@ button, .button, .option-button {
 }
 
 #user-input:focus {
-    border-color: #0084ff;
+    border-color: var(--color-secondary);
 }
 
 #send-button {
@@ -850,7 +954,7 @@ button, .button, .option-button {
 }
 
 #send-button:hover {
-    background-color: #f0f2f5;
+    background-color: var(--color-button-default);
 }
 
 #send-button .emoji {
@@ -876,14 +980,14 @@ button, .button, .option-button {
 
 .user-message {
     align-self: flex-end;
-    background-color: #0084ff;
+    background-color: var(--color-secondary);
     color: white;
 }
 
 .bot-message {
     align-self: flex-start;
-    background-color: #f0f2f5;
-    color: black;
+    background-color: var(--color-button-default);
+    color: var(--color-text-main);
 }
 
 /* Default width for PC */
@@ -891,7 +995,7 @@ button, .button, .option-button {
     width: 250px;
     padding: 20px;
     background-color: white;
-    border-right: 1px solid #e4e6eb;
+    border-right: 1px solid var(--color-button-default);
     box-sizing: border-box;
     transition: width 0.3s ease;
 }
@@ -918,10 +1022,10 @@ button, .button, .option-button {
     min-width: 120px;
     width: 100%;
     padding: 10px 12px;
-    background-color: #f0f2f5;
+    background-color: var(--color-button-default);
     border-radius: 8px;
     text-decoration: none;
-    color: black;
+    color: var(--color-text-main);
     transition: all 0.2s ease;
     box-sizing: border-box;
     white-space: nowrap;
@@ -930,7 +1034,7 @@ button, .button, .option-button {
 }
 
 .info-button:hover {
-    background-color: #e4e6eb;
+    background-color: var(--color-button-hover);
     transform: translateY(-1px);
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
@@ -1000,7 +1104,7 @@ button, .button, .option-button {
 
 .logout-btn {
     padding: 8px 16px;
-    background-color: #dc3545;
+    background-color: var(--color-secondary-dark);
     color: white;
     text-decoration: none;
     border-radius: 4px;
@@ -1008,7 +1112,7 @@ button, .button, .option-button {
 }
 
 .logout-btn:hover {
-    background-color: #c82333;
+    background-color: var(--color-secondary);
 }
 
 .stats-container {
@@ -1023,7 +1127,7 @@ button, .button, .option-button {
     align-items: center;
     margin-bottom: 30px;
     padding-bottom: 15px;
-    border-bottom: 2px solid #eee;
+    border-bottom: 2px solid var(--color-button-default);
 }
 
 .content-grid {
@@ -1033,7 +1137,7 @@ button, .button, .option-button {
 }
 
 .stat-card {
-    background-color: #fff;
+    background-color: white;
     border-radius: 8px;
     padding: 20px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -1043,7 +1147,7 @@ button, .button, .option-button {
 .stat-number {
     font-size: 2em;
     font-weight: bold;
-    color: #007bff;
+    color: var(--color-secondary);
     margin: 10px 0;
 }
 
@@ -1051,7 +1155,7 @@ button, .button, .option-button {
     width: 100%;
     border-collapse: collapse;
     margin-top: 20px;
-    background-color: #fff;
+    background-color: white;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
@@ -1059,21 +1163,21 @@ button, .button, .option-button {
 .chat-table th, .chat-table td {
     padding: 12px;
     text-align: left;
-    border-bottom: 1px solid #dee2e6;
+    border-bottom: 1px solid var(--color-button-default);
 }
 
 .patients-table th, .chat-table th {
-    background-color: #f8f9fa;
+    background-color: var(--color-button-default);
     font-weight: 600;
 }
 
 .patients-table tr:hover {
-    background-color: #f8f9fa;
+    background-color: var(--color-button-default);
 }
 
 .view-btn {
     padding: 6px 12px;
-    background-color: #007bff;
+    background-color: var(--color-secondary);
     color: white;
     text-decoration: none;
     border-radius: 4px;
@@ -1082,19 +1186,19 @@ button, .button, .option-button {
 }
 
 .view-btn:hover {
-    background-color: #0056b3;
+    background-color: var(--color-secondary-dark);
 }
 
 .no-data {
     text-align: center;
     padding: 20px;
-    color: #6c757d;
+    color: var(--color-text-light);
 }
 
 .debug-section {
     margin-top: 40px;
     padding-top: 20px;
-    border-top: 1px solid #dee2e6;
+    border-top: 1px solid var(--color-button-default);
 }
 
 .chat-table pre {
@@ -1117,38 +1221,38 @@ button, .button, .option-button {
 
 .thank-you {
     text-align: center;
-    color: #2563eb;
+    color: var(--color-secondary);
     margin-bottom: 30px;
 }
 
 .section {
     margin-bottom: 30px;
     padding: 15px;
-    border: 1px solid #e5e7eb;
+    border: 1px solid var(--color-button-default);
     border-radius: 4px;
 }
 
 .section-title {
-    color: #1d4ed8;
+    color: var(--color-secondary);
     margin-bottom: 15px;
     padding-bottom: 8px;
-    border-bottom: 2px solid #93c5fd;
+    border-bottom: 2px solid var(--color-secondary);
 }
 
 .chat-item {
     margin: 10px 0;
     padding: 10px;
-    background: #f3f4f6;
+    background: var(--color-button-default);
     border-radius: 4px;
 }
 
 .chat-question {
-    color: #1f2937;
+    color: var(--color-text-main);
     font-weight: bold;
 }
 
 .chat-response {
-    color: #4b5563;
+    color: var(--color-text-light);
     margin-top: 5px;
     white-space: pre-wrap;
 }
@@ -1171,7 +1275,7 @@ button, .button, .option-button {
     display: flex;
     justify-content: space-between;
     padding: 8px;
-    border-bottom: 1px solid #e5e7eb;
+    border-bottom: 1px solid var(--color-button-default);
 }
 
 .total {
@@ -1185,7 +1289,7 @@ button, .button, .option-button {
     width: 200px;
     margin: 20px auto;
     padding: 10px;
-    background: #2563eb;
+    background: var(--color-secondary);
     color: white;
     border: none;
     border-radius: 4px;
@@ -1195,7 +1299,7 @@ button, .button, .option-button {
 }
 
 .print-button:hover {
-    background: #1d4ed8;
+    background: var(--color-secondary-dark);
 }
 
 /* Print styles */
@@ -1223,32 +1327,109 @@ button:disabled {
 
 .voice-controls {
     display: flex;
-    gap: 10px;
-    margin-bottom: 10px;
-    padding: 0 20px;
+    gap: 8px;
+    align-items: center;
 }
 
 .voice-button {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 5px;
-    padding: 8px 15px;
-    border: none;
-    border-radius: 20px;
-    background-color: #007bff;
-    color: white;
-    cursor: pointer;
+    justify-content: center;
+    background-color: transparent;
+    color: var(--color-text-main);
+    border: 1px solid #e0e0e0;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    padding: 0;
     transition: all 0.2s ease;
-    font-size: 14px;
+    cursor: pointer;
+    position: relative;
+}
+
+.voice-button .button-text {
+    display: none;
+}
+
+/* Tooltip style */
+.voice-button::after {
+    content: attr(title);
+    position: absolute;
+    bottom: -30px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 4px 8px;
+    background: rgba(0,0,0,0.7);
+    color: white;
+    border-radius: 4px;
+    font-size: 12px;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s, visibility 0.2s;
+    z-index: 10;
+}
+
+.voice-button:hover::after {
+    opacity: 1;
+    visibility: visible;
 }
 
 .voice-button:hover {
-    background-color: #0056b3;
+    background-color: var(--color-button-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
+.voice-button svg {
+    width: 20px;
+    height: 20px;
+    display: block;
+    margin: auto;
+    transition: transform 0.2s ease;
+    stroke-width: 2.2px;
+    stroke: currentColor;
+}
+
+
 .voice-button.recording {
-    background-color: #dc3545;
+    background-color: rgba(255, 82, 82, 0.1);
+    border-color: #ff5252;
+    color: #ff5252;
     animation: pulse 1.5s infinite;
+}
+
+.voice-button.recording:hover {
+    background-color: rgba(255, 82, 82, 0.15);
+    border-color: #ff5252;
+    box-shadow: 0 0 0 4px rgba(255, 82, 82, 0.1);
+}
+
+.voice-button:hover svg {
+    transform: scale(1.1);
+    stroke-width: 2.4px;
+}
+
+.voice-button.recording svg {
+    stroke: #ff5252;
+}
+
+.voice-button.disabled {
+    opacity: 0.7;
+    border-color: #ccc;
+    color: #999;
+    box-shadow: none;
+    background-color: #f5f5f5;
+}
+
+.voice-button.disabled:hover {
+    transform: none;
+    box-shadow: none;
+    background-color: #f5f5f5;
+}
+
+.voice-button.disabled svg {
+    stroke: #999;
 }
 
 #char-count {
@@ -1256,7 +1437,7 @@ button:disabled {
     right: 16px;
     top: 50%;
     transform: translateY(-50%);
-    color: #6c757d;
+    color: var(--color-text-light);
     font-size: 13px;
     pointer-events: none;
     z-index: 2; /* Ensure it appears above the input */
@@ -1266,9 +1447,9 @@ button:disabled {
 .chat-entry {
     margin-bottom: 20px;
     padding: 15px;
-    background: #f9fafb;
+    background: var(--color-button-default);
     border-radius: 8px;
-    border: 1px solid #e5e7eb;
+    border: 1px solid var(--color-button-default);
 }
 
 .chat-qa {
@@ -1278,31 +1459,31 @@ button:disabled {
 .chat-question {
     font-weight: bold;
     margin-bottom: 8px;
-    color: #1f2937;
+    color: var(--color-text-main);
 }
 
 .chat-answer {
-    color: #4b5563;
+    color: var(--color-text-light);
     white-space: pre-wrap;
     line-height: 1.6;
 }
 
 .message-type {
     font-size: 0.9em;
-    color: #6b7280;
+    color: var(--color-text-light);
     margin-bottom: 10px;
     font-weight: 500;
 }
 
 .message-time {
     font-size: 0.8em;
-    color: #9ca3af;
+    color: var(--color-text-light);
     margin-top: 10px;
     text-align: right;
 }
 
 .form-flow {
-    background: #f3f4f6;
+    background: var(--color-button-default);
 }
 
 .form-message {
@@ -1312,19 +1493,19 @@ button:disabled {
 }
 
 .form-user {
-    background: #e0f2fe;
+    background: var(--color-button-default);
     text-align: right;
 }
 
 .form-bot {
-    background: #f3f4f6;
+    background: var(--color-button-default);
 }
 
 /* Summary styles */
 .summary {
     line-height: 1.6;
     white-space: pre-wrap;
-    color: #4b5563;
+    color: var(--color-text-light);
 }
 
 /* Feedback buttons styling */
@@ -1358,23 +1539,23 @@ button:disabled {
 }
 
 .like-btn {
-    background-color: #e6f7e6;
-    color: #2e7d32;
+    background-color: var(--color-success);
+    color: white;
 }
 
 .like-btn.active {
-    background-color: #2e7d32;
-    color: #fff;
+    background-color: var(--color-success-dark);
+    color: white;
 }
 
 .dislike-btn {
-    background-color: #feeaea;
-    color: #c62828;
+    background-color: var(--color-secondary-dark);
+    color: white;
 }
 
 .dislike-btn.active {
-    background-color: #c62828;
-    color: #fff;
+    background-color: var(--color-secondary);
+    color: white;
 }
 
 .ban-btn {
