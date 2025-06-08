@@ -44,6 +44,18 @@
     </style>
 </head>
 <body>
+    <!-- Sidebar toggle button for mobile -->
+    <button id="sidebarToggle" class="sidebar-toggle" aria-label="切換側邊欄">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+    </button>
+    
+    <!-- Overlay for mobile sidebar -->
+    <div id="sidebarOverlay" class="sidebar-overlay"></div>
+    
     <div class="container">
         <div class="info-sidebar">
             <div class="sidebar-header">
@@ -114,7 +126,8 @@
             <div class="input-area">
                 
                 <!-- All button groups at the same position in the DOM -->
-                <div id="sex-buttons" style="display: none;" class="button-group">
+                <div id="option-buttons-container" style="display: none;">
+                    <div id="sex-buttons" style="display: none;" class="button-group">
                     <button onclick="selectSex('男')" class="option-button">
                         <span class="emoji">👨</span> 男
                     </button>
@@ -219,7 +232,8 @@
                     <button onclick="selectQuestion('根據我的身體狀況，有什麼特別需要注意的事項？')" class="option-button question-button">
                         <span class="emoji">👥</span> 個人建議
                     </button>
-                </div>
+                </div> <!-- Closes the last button group -->
+                </div> <!-- Closes #option-buttons-container -->
                 
                 <div class="text-input-area">
                     <input type="text" id="user-input" placeholder="請在此輸入您的回答...">
@@ -349,6 +363,47 @@
             // Scroll to bottom after showing options
             scrollToBottom();
         }
+        
+        // Mobile sidebar toggle functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            const sidebar = document.querySelector('.info-sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            
+            // Function to toggle sidebar
+            function toggleSidebar() {
+                sidebar.classList.toggle('active');
+                overlay.classList.toggle('active');
+            }
+            
+            // Toggle sidebar when button is clicked
+            sidebarToggle.addEventListener('click', toggleSidebar);
+            
+            // Close sidebar when overlay is clicked
+            overlay.addEventListener('click', toggleSidebar);
+            
+            // Set correct viewport height for mobile browsers
+            function setViewportHeight() {
+                let vh = window.innerHeight * 0.01;
+                document.documentElement.style.setProperty('--vh', `${vh}px`);
+            }
+            
+            // Set initial viewport height and update on resize
+            setViewportHeight();
+            window.addEventListener('resize', setViewportHeight);
+
+            // New: Show option buttons on mobile input focus
+            const userInputField = document.getElementById('user-input');
+            const optionsWrapper = document.getElementById('option-buttons-container');
+
+            if (userInputField && optionsWrapper) {
+                userInputField.addEventListener('focus', () => {
+                    if (window.innerWidth <= 576) {
+                        optionsWrapper.style.display = 'flex'; // Show the container
+                    }
+                });
+            }
+        });
     </script>
     <script src="{{ url_for('static', filename='js/chat.js') }}"></script>
 </body>

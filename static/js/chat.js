@@ -10,6 +10,16 @@ if (sessionStorage.getItem('userId')) {
 // Add current_step variable to track chat state
 let current_step = sessionStorage.getItem('current_step') || 'initial';
 
+// Function to hide the main option buttons container on mobile after interaction
+function hideOptionButtonsAfterInteraction() {
+    if (window.innerWidth <= 576) { // Only on mobile
+        const optionsWrapper = document.getElementById('option-buttons-container');
+        if (optionsWrapper) {
+            optionsWrapper.style.display = 'none';
+        }
+    }
+}
+
 // Add variables to store multiple selections
 let selectedWorries = [];
 let selectedMedicalHistory = [];
@@ -43,8 +53,11 @@ function sendMessage(message = '') {
         addMessageToChat('user', message);
     }
 
-    // Hide all buttons before sending message
+    // Hide all individual button groups
     hideAllButtons();
+
+    // Hide the main option buttons container on mobile
+    hideOptionButtonsAfterInteraction();
 
     fetch('/chat', {
         method: 'POST',
