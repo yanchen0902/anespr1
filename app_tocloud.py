@@ -4,11 +4,13 @@ import json
 import google.generativeai as genai
 import openai
 import os
+import requests
 from dotenv import load_dotenv
 from markdown import markdown
 import bleach
 import logging
 import secrets
+import uuid
 import re
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user, AnonymousUserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -22,6 +24,12 @@ logger = logging.getLogger(__name__)
 
 # Load environment variables
 load_dotenv()
+
+# Ollama configuration
+USE_LOCAL_MODEL = os.getenv('USE_LOCAL_MODEL', 'false').lower() == 'true'
+OLLAMA_URL = os.getenv('OLLAMA_URL', 'http://192.168.226.162:11434')
+OLLAMA_MODEL = os.getenv('OLLAMA_MODEL', 'gemma3:latest')
+logger.info(f"Ollama config: USE_LOCAL_MODEL={USE_LOCAL_MODEL}, URL={OLLAMA_URL}, MODEL={OLLAMA_MODEL}")
 
 app = Flask(__name__)
 app.config['JSON_AS_ASCII'] = False  # Ensure proper UTF-8 handling
@@ -64,20 +72,43 @@ load_dotenv()
 def load_user(user_id):
     return User.query.get(int(user_id))
 
+def _initialize_session_vars():
+    """Helper function to initialize or repair session variables"""
+    logger.info(f"[_initialize_session_vars] Entry. Session before init: {dict(session)}")
+    user_id_created = False
+    if 'user_id' not in session:
+        session['user_id'] = uuid.uuid4().hex
+        user_id_created = True
+        logger.info(f"New user session initialized with user_id: {session['user_id']}")
+
+    # Ensure the user-specific dictionary exists in the session
+    user_specific_session_key = session['user_id'] 
+    if user_specific_session_key not in session or not isinstance(session[user_specific_session_key], dict):
+        session[user_specific_session_key] = {}
+        session.modified = True
+
+    # Initialize or repair current_step and patient_info
+    if user_id_created or 'current_step' not in session[user_specific_session_key]:
+        session[user_specific_session_key]['current_step'] = 'initial'
+        session.modified = True
+        logger.info(f"Set current_step to 'initial' for user_id: {session['user_id']}")
+
+    if 'patient_info' not in session[user_specific_session_key]:
+        session[user_specific_session_key]['patient_info'] = {}
+        session.modified = True
+
+    session.modified = True  # Ensure all changes are marked
+    logger.info(f"[_initialize_session_vars] Exit. Session after init: {dict(session)}")
+
 @app.before_request
 def make_session_permanent():
+    logger.info(f"[make_session_permanent] Entry. Session before mods: {dict(session)}")
     session.permanent = True
-    # Initialize user_id in session if not exists
-    if 'user_id' not in session:
-        session['user_id'] = str(datetime.utcnow().timestamp())
-        session.modified = True
-        logger.info(f"New user session initialized with ID: {session['user_id']}")
-    
-    # Log request information for debugging
-    logger.info(f"Request from IP: {request.remote_addr}")
-    logger.info(f"Session ID: {session.get('_id', 'No ID')}")
-    logger.info(f"User ID: {session.get('user_id', 'No user_id')}")
-    logger.info(f"Current session data: {dict(session)}")
+    _initialize_session_vars()  # Call the helper function
+    logger.info(f"[make_session_permanent] Exit. Session after mods: {dict(session)}")
+    # Log request information for debugging (optional, can be verbose)
+    # logger.info(f"Request from IP: {request.remote_addr}, Session ID: {session.get('_id', 'No ID')}, User ID: {session['user_id']}")
+    # logger.info(f"Current session data for user {session['user_id']}: {session[user_specific_session_key]}")
 
 # 問題流程 - Preserved from original app_tocloud2.py
 # questions = {
@@ -304,8 +335,41 @@ def generate_summary(info):
     return summary
 
 
+def get_ollama_response(prompt, model_name=OLLAMA_MODEL, ollama_url=OLLAMA_URL):
+    """Get response from local Ollama server running Gemma model"""
+    try:
+        # Endpoint for Ollama API
+        endpoint = f"{ollama_url}/api/generate"
+        
+        # Prepare the request payload
+        payload = {
+            "model": model_name,
+            "prompt": prompt,
+            "stream": False,
+            "temperature": 0.3,
+            "top_p": 0.95,
+            "top_k": 64,
+            "max_tokens": 8192
+        }
+        
+        logger.info(f"Sending request to Ollama API at {ollama_url} for model: {model_name}")
+        response = requests.post(endpoint, json=payload)
+        
+        # Check if the request was successful
+        if response.status_code == 200:
+            result = response.json()
+            return result.get("response", "")
+        else:
+            logger.error(f"Ollama API error: Status code {response.status_code}, Response: {response.text}")
+            return None
+            
+    except Exception as e:
+        logger.error(f"Error in get_ollama_response: {str(e)}", exc_info=True)
+        return None
+
+
 def get_bot_response(message, patient_info):
-    """Get response from Gemini model"""
+    """Get response from AI model (either Gemini or local Ollama model)"""
     try:
         # Get patient_id from session
         user_id = patient_info.get('user_id')
@@ -318,21 +382,37 @@ def get_bot_response(message, patient_info):
             logger.error(f"No patient_id found in session for user_id: {user_id}")
             return "抱歉，系統發生錯誤。請重新開始對話。"
         
-        # Create context and get response from model
+        # Create context for the AI model
         context = create_context(message, patient_info)
-        model = get_gemini_model()
-        response = model.generate_content(context)
         
-        if response and response.text:
-            # Format the response first
-            formatted_response = format_response(response.text)
+        # Determine which model to use based on the configuration
+        if USE_LOCAL_MODEL:
+            logger.info(f"Using local Ollama model: {OLLAMA_MODEL}")
+            # Call the Ollama API directly with the context
+            response_text = get_ollama_response(context, model_name=OLLAMA_MODEL, ollama_url=OLLAMA_URL)
             
-            # Return the response with follow-up prompt
-            return f"{formatted_response}\n\n您還有其他關於麻醉的問題嗎？"
+            if response_text:
+                # Format the response
+                formatted_response = format_response(response_text)
+            else:
+                logger.error("Failed to get response from Ollama model")
+                return "抱歉，我現在無法回答您的問題。請稍後再試。"
         else:
-            logger.error("Empty response from model")
-            return "抱歉，我現在無法回答您的問題。請稍後再試。"
+            logger.info("Using Google Gemini model")
+            # Get response from Gemini model
+            model = get_gemini_model()
+            response = model.generate_content(context)
             
+            if response and response.text:
+                # Format the response
+                formatted_response = format_response(response.text)
+            else:
+                logger.error("Failed to get response from Gemini model")
+                return "抱歉，我現在無法回答您的問題。請稍後再試。"
+            
+        # Return the response with follow-up prompt
+        return f"{formatted_response}\n\n您還有其他關於麻醉的問題嗎？"
+
     except Exception as e:
         logger.error(f"Error in get_bot_response: {str(e)}", exc_info=True)
         return "抱歉，系統發生錯誤。請稍後再試。"
@@ -501,9 +581,28 @@ def get_openai_response(message, patient_info):
 @app.route('/')
 def home():
     """Reset session and start fresh"""
-    # Clear any existing session data
+    logger.info(f"[home] Entry. Session before clear: {dict(session)}")
     session.clear()
-    return render_template('index.html')
+    logger.info(f"[home] Session after clear: {dict(session)}")
+    
+    # IMPORTANT: Explicitly initialize session variables after clearing
+    _initialize_session_vars()
+    logger.info(f"[home] Session after _initialize_session_vars: {dict(session)}")
+    
+    # Now we can safely retrieve user_id and current_step
+    user_id_to_pass = session.get('user_id')
+
+    current_step_to_pass = 'initial' # Default, should be overridden
+    
+    if user_id_to_pass and user_id_to_pass in session and isinstance(session.get(user_id_to_pass), dict):
+        current_step_to_pass = session[user_id_to_pass].get('current_step', 'initial')
+    else:
+        logger.warning(f"Home route: user_id '{user_id_to_pass}' not found in session or its entry is not a dict after explicit initialization. Session state: {dict(session)}")
+
+    logger.info(f"[home] Passing to template: user_id='{user_id_to_pass}', server_current_step='{current_step_to_pass}'")
+    return render_template('index.html', 
+                           user_id=user_id_to_pass, 
+                           server_current_step=current_step_to_pass)
 
 @app.route('/reset_session', methods=['POST'])
 def reset_session():
@@ -541,6 +640,17 @@ def reset_session():
 
 @app.route('/chat', methods=['POST'])
 def chat():
+    logger.info(f"[chat] Entry. Full session data: {dict(session)}")
+    client_user_id = request.get_json().get('user_id') # Get client_user_id early for logging
+    logger.info(f"[chat] Client sent user_id: {client_user_id}")
+    logger.info(f"[chat] Server session['user_id']: {session.get('user_id')}")
+    if client_user_id and client_user_id in session and isinstance(session.get(client_user_id), dict):
+        logger.info(f"[chat] Server session[client_user_id]['current_step']: {session[client_user_id].get('current_step')}")
+    elif client_user_id:
+        logger.warning(f"[chat] Client user_id '{client_user_id}' not found as a dict key in server session.")
+    else:
+        logger.warning("[chat] Client did not send a user_id or it was None.")
+
     try:
         data = request.get_json()
         user_id = data.get('user_id')

@@ -44,6 +44,34 @@
     </style>
 </head>
 <body>
+    <script>
+    // Synchronize server-side session with client-side sessionStorage
+    (function() {
+        // Get server-side session variables (passed from Flask)
+        const serverUserId = '{{ user_id }}'; 
+        const serverCurrentStep = '{{ server_current_step }}';
+        
+        console.log('Server provided user_id:', serverUserId);
+        console.log('Server provided current_step:', serverCurrentStep);
+        
+        // If server provided a valid user_id and it differs from what's in sessionStorage,
+        // or if server indicates we're at the 'initial' step, reset the client storage
+        if (serverUserId && (serverUserId !== sessionStorage.getItem('userId') || serverCurrentStep === 'initial')) {
+            console.log('Synchronizing client sessionStorage with server session');
+            
+            // Clear any existing sessionStorage data
+            sessionStorage.clear();
+            
+            // Set the new user_id from server
+            sessionStorage.setItem('userId', serverUserId);
+            
+            // Set the current_step from server
+            sessionStorage.setItem('current_step', serverCurrentStep);
+            
+            console.log('Client storage synchronized with server. userId:', serverUserId, 'current_step:', serverCurrentStep);
+        }
+    })();
+    </script>
     <!-- Sidebar toggle button for mobile -->
     <button id="sidebarToggle" class="sidebar-toggle" aria-label="切換側邊欄">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -237,7 +265,7 @@
                 
                 <div class="text-input-area">
                     <input type="text" id="user-input" placeholder="請在此輸入您的回答...">
-                    <button onclick="sendMessage(document.getElementById('user-input').value)" class="send-button">送出</button>
+                    <button onclick="handleSendButton()" class="send-button">送出</button>
                 </div>
             </div>
         </div>

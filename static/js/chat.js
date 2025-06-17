@@ -10,13 +10,15 @@ if (sessionStorage.getItem('userId')) {
 // Add current_step variable to track chat state
 let current_step = sessionStorage.getItem('current_step') || 'initial';
 
-// Function to hide the main option buttons container on mobile after interaction
+// Function to manage the main option buttons container visibility after interaction
 function hideOptionButtonsAfterInteraction() {
-    if (window.innerWidth <= 576) { // Only on mobile
-        const optionsWrapper = document.getElementById('option-buttons-container');
-        if (optionsWrapper) {
-            optionsWrapper.style.display = 'none';
-        }
+    const optionsWrapper = document.getElementById('option-buttons-container');
+    if (!optionsWrapper) return;
+    
+    if (window.innerWidth <= 576) { // On mobile - hide the container
+        optionsWrapper.style.display = 'none';
+    } else { // On desktop - ensure the container is visible
+        optionsWrapper.style.display = 'flex';
     }
 }
 
@@ -366,13 +368,21 @@ function addSendButtonIfNeeded(containerId, selectedItems) {
         sendButton.className = 'send-selections-button option-button';
         sendButton.innerHTML = '<span class="emoji">✉️</span> 送出選擇';
         sendButton.onclick = () => {
-            const message = selectedItems.join('、');
-            // Reset selections
+            let message = selectedItems.join('、');
+            
+            // Check for additional text input for medical history
             if (containerId === 'medical-history-buttons') {
+                const userInputField = document.getElementById('user-input');
+                if (userInputField && userInputField.value.trim()) {
+                    // Add text input to the message if it exists
+                    message += '、' + userInputField.value.trim();
+                    userInputField.value = ''; // Clear the input field
+                }
                 selectedMedicalHistory = [];
             } else {
                 selectedWorries = [];
             }
+            
             // Send message and remove send button
             sendMessage(message);
             sendButton.remove();
@@ -387,38 +397,54 @@ function selectOperation(operation) {
     sendMessage(operation);
 }
 
-function selectOperation(operation) {
-    sendMessage(operation);
+function handleSendButton() {
+    const userInputField = document.getElementById('user-input');
+    const userInputValue = userInputField ? userInputField.value.trim() : '';
+    
+    // Check if we're in medical history selection mode and have selections
+    if (document.getElementById('medical-history-buttons').style.display === 'flex' && selectedMedicalHistory.length > 0) {
+        let message = selectedMedicalHistory.join('、');
+        
+        // Add text input to the message if it exists
+        if (userInputValue) {
+            message += '、' + userInputValue;
+            userInputField.value = ''; // Clear the input field
+        }
+        
+        // Send message and reset selections
+        sendMessage(message);
+        selectedMedicalHistory = [];
+        resetButtonStates();
+        return;
+    }
+    
+    // Check if we're in worries selection mode and have selections
+    if (document.getElementById('worry-buttons').style.display === 'flex' && selectedWorries.length > 0) {
+        let message = selectedWorries.join('、');
+        
+        // Add text input to the message if it exists
+        if (userInputValue) {
+            message += '、' + userInputValue;
+            userInputField.value = ''; // Clear the input field
+        }
+        
+        // Send message and reset selections
+        sendMessage(message);
+        selectedWorries = [];
+        resetButtonStates();
+        return;
+    }
+    
+    // Default behavior - just send the text input
+    sendMessage(userInputValue);
 }
 
 function startNewPatient() {
-    // Reset all selections and button states
-    resetButtonStates();
-    
-    // Reset session storage
-    sessionStorage.removeItem('current_step');
-    current_step = 'initial';
-    
-    // Clear chat messages
-    const chatMessages = document.getElementById('chat-messages');
-    if (chatMessages) {
-        chatMessages.innerHTML = '<div class="message bot-message">您好！我是您的麻醉諮詢助手。\n為了提供您最適合的建議，請讓我先了解一些基本資訊。\n我們會謹慎保護您的個人資料，請放心告訴我。</div>';
-    }
-    
-    // Hide all buttons
-    hideAllButtons();
-    
-    // Show text input
-    showTextInput();
-    
-    // Reset input placeholder
-    const userInput = document.getElementById('user-input');
-    if (userInput) {
-        userInput.placeholder = '請在此輸入您的回答...';
-    }
-    
-    // Send empty message to start new conversation
-    sendMessage();
+    // Reload the page to the root.
+    // This will trigger the '/' route on the backend, which should call session.clear(),
+    // ensuring a full server-side and client-side reset.
+    // The backend's @app.before_request will then set up a fresh session state.
+    window.location.href = '/';
 }
 
 function showWorryButtons() {
@@ -468,11 +494,21 @@ function goToSelfPay() {
 
 // When page loads, send empty message to get initial greeting
 window.onload = function() {
+    // Reset all button states
     resetButtonStates();
-    // Send empty message to get initial greeting if this is a new session
-    if (current_step === 'initial') {
-        sendMessage();
-    }
+    
+    // Add a small delay to ensure session sync has completed
+    setTimeout(() => {
+        // Get the freshest current_step from sessionStorage
+        const freshCurrentStep = sessionStorage.getItem('current_step') || 'initial';
+        console.log('window.onload: current_step from sessionStorage =', freshCurrentStep);
+        
+        // Send empty message to get initial greeting if this is a new session
+        if (freshCurrentStep === 'initial') {
+            console.log('Starting new conversation with initial greeting');
+            sendMessage();
+        }
+    }, 100); // Small delay to ensure session sync completes first
 };
 
 // Add enter key handler for input
