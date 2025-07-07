@@ -3,38 +3,139 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>歡迎使用麻醉諮詢助手</title>
+    <title>手術準備指南 - 麻醉諮詢助手</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .surgery-prep-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            font-family: 'Noto Sans TC', sans-serif;
+        }
+        
+        .surgery-prep-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .surgery-prep-title {
+            color: #2c3e50;
+            font-size: 2.2rem;
+            margin-bottom: 15px;
+        }
+        
+        .surgery-prep-subtitle {
+            color: #7f8c8d;
+            font-size: 1.2rem;
+            margin-bottom: 30px;
+        }
+        
+        .surgery-prep-icon {
+            font-size: 3rem;
+            margin: 20px 0;
+        }
+        
+        .surgery-topic-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin-top: 30px;
+        }
+        
+        .surgery-topic-card {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+            padding: 25px;
+            transition: transform 0.3s, box-shadow 0.3s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            text-decoration: none;
+            color: #2c3e50;
+        }
+        
+        .surgery-topic-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
+        }
+        
+        .topic-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+        }
+        
+        .topic-title {
+            font-size: 1.4rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #3498db;
+        }
+        
+        .topic-description {
+            color: #7f8c8d;
+            line-height: 1.6;
+        }
+        
+        .back-button {
+            display: inline-block;
+            margin-top: 40px;
+            padding: 12px 25px;
+            background-color: #3498db;
+            color: white;
+            border-radius: 30px;
+            text-decoration: none;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        
+        .back-button:hover {
+            background-color: #2980b9;
+        }
+    </style>
 </head>
 <body>
-    <div class="greeting-container">
-        <div class="greeting-card">
-            <h1>歡迎使用麻醉諮詢助手</h1>
-            <div class="greeting-icon">👋</div>
-            <p class="greeting-text">
-                您好！我是您的麻醉諮詢助手。<br>
-                我將協助您了解麻醉相關資訊，並為您提供個人化的建議。
-            </p>
-            <div class="feature-list">
-                <div class="feature-item">
-                    <span class="feature-icon">💬</span>
-                    <p>智能對話，解答您的疑慮</p>
-                </div>
-                <div class="feature-item">
-                    <span class="feature-icon">📋</span>
-                    <p>個人化麻醉建議</p>
-                </div>
-                <div class="feature-item">
-                    <span class="feature-icon">🏥</span>
-                    <p>術前準備指引</p>
-                </div>
-                <div class="feature-item">
-                    <span class="feature-icon">⚕️</span>
-                    <p>自費項目諮詢</p>
-                </div>
-            </div>
-            <a href="{{ url_for('chat') }}" class="start-button">
-                開始諮詢 <span class="arrow">→</span>
+    <div class="surgery-prep-container">
+        <div class="surgery-prep-header">
+            <h1 class="surgery-prep-title">手術準備全方位指南</h1>
+            <p class="surgery-prep-subtitle">提供您手術前所需的重要資訊，幫助您安心迎接手術</p>
+            <div class="surgery-prep-icon">🏥</div>
+        </div>
+        
+        <div class="surgery-topic-grid">
+            <!-- Card 1: 住院報到相關問題 -->
+            <a href="{{ url_for('hospital_admission') }}" class="surgery-topic-card">
+                <div class="topic-icon">🏣</div>
+                <h2 class="topic-title">住院報到相關問題</h2>
+                <p class="topic-description">了解住院流程、需攜帶的文件、報到時間以及住院環境等相關資訊。</p>
+            </a>
+            
+            <!-- Card 2: 手術時間相關問題 -->
+            <a href="{{ url_for('surgery_time') }}" class="surgery-topic-card">
+                <div class="topic-icon">⏰</div>
+                <h2 class="topic-title">手術時間相關問題</h2>
+                <p class="topic-description">手術前的禁食時間、手術排程說明、術後恢復時間估計等實用資訊。</p>
+            </a>
+            
+            <!-- Card 3: 術前藥物相關問題 -->
+            <a href="{{ url_for('pre_surgery_medication') }}" class="surgery-topic-card">
+                <div class="topic-icon">💊</div>
+                <h2 class="topic-title">術前藥物相關問題</h2>
+                <p class="topic-description">了解術前需停用的藥物、慢性病用藥調整建議及術前麻醉藥物說明。</p>
+            </a>
+            
+            <!-- Card 4: 麻醉安全介紹 -->
+            <a href="{{ url_for('anesthesia_safety') }}" class="surgery-topic-card">
+                <div class="topic-icon">🛡️</div>
+                <h2 class="topic-title">麻醉安全介紹</h2>
+                <p class="topic-description">認識不同麻醉方式、常見的麻醉迷思解析以及麻醉後的注意事項。</p>
+            </a>
+        </div>
+        
+        <div style="text-align: center;">
+            <a href="{{ url_for('home') }}" class="back-button">
+                返回主頁 <span>←</span>
             </a>
         </div>
     </div>

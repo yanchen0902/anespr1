@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>住院報到相關問題 - 麻醉諮詢助手</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .subpage-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            font-family: 'Noto Sans TC', sans-serif;
+        }
+        
+        .subpage-header {
+            text-align: center;
+            margin-bottom: 40px;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 20px;
+        }
+        
+        .subpage-title {
+            color: #2c3e50;
+            font-size: 2rem;
+            margin-bottom: 15px;
+        }
+        
+        .subpage-icon {
+            font-size: 3rem;
+            margin: 15px 0;
+            color: #3498db;
+        }
+        
+        .info-section {
+            margin-bottom: 30px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+            padding: 25px;
+        }
+        
+        .section-title {
+            color: #3498db;
+            font-size: 1.4rem;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .section-icon {
+            margin-right: 12px;
+            font-size: 1.5rem;
+        }
+        
+        .section-content {
+            color: #34495e;
+            line-height: 1.7;
+        }
+        
+        .info-list {
+            padding-left: 20px;
+        }
+        
+        .info-list li {
+            margin-bottom: 12px;
+        }
+        
+        .note-box {
+            background-color: #f8f9fa;
+            border-left: 4px solid #3498db;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 0 5px 5px 0;
+        }
+        
+        .note-title {
+            color: #2c3e50;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .navigation-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 40px;
+        }
+        
+        .nav-button {
+            padding: 10px 20px;
+            background-color: #3498db;
+            color: white;
+            border-radius: 30px;
+            text-decoration: none;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        
+        .nav-button:hover {
+            background-color: #2980b9;
+        }
+    </style>
+</head>
+<body>
+    <div class="subpage-container">
+        <div class="subpage-header">
+            <div class="subpage-icon">🏣</div>
+            <h1 class="subpage-title">住院報到相關問題</h1>
+            <p class="subtitle">了解住院流程、所需文件及環境等相關資訊</p>
+        </div>
+        
+        <div class="info-section">
+            <h2 class="section-title">
+                <span class="section-icon">📝</span>報到流程與準備文件
+            </h2>
+            <div class="section-content">
+                <p>住院報到是手術準備的第一步，請您依照預約時間前來醫院。以下是報到所需準備的文件及基本流程：</p>
+                <ul class="info-list">
+                    <li><strong>健保卡</strong>：必須攜帶健保卡以進行健保身份確認。</li>
+                    <li><strong>身分證</strong>：作為身份核對之用。</li>
+                    <li><strong>住院同意書</strong>：若已事先領取，請填妥並攜帶；若未領取，將於報到時填寫。</li>
+                    <li><strong>手術同意書</strong>：若主治醫師已預先交給您，請確認填妥並簽名。</li>
+                    <li><strong>過敏史與藥物史</strong>：請攜帶您目前服用的藥物清單或藥袋。</li>
+                </ul>
+                
+                <div class="note-box">
+                    <div class="note-title">📢 報到地點與流程</div>
+                    <p>一般而言，報到流程如下：</p>
+                    <ol>
+                        <li>至住院服務中心報到（入院手續）</li>
+                        <li>等待安排病房</li>
+                        <li>由護理人員引導至病房</li>
+                        <li>護理人員收集基本資料及健康評估</li>
+                        <li>術前檢查（若尚未完成）</li>
+                        <li>麻醉醫師訪視</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+        
+        <div class="info-section">
+            <h2 class="section-title">
+                <span class="section-icon">🕒</span>報到時間與注意事項
+            </h2>
+            <div class="section-content">
+                <p>住院報到時間會影響您的手術準備，請特別注意以下時間安排：</p>
+                <ul class="info-list">
+                    <li><strong>報到時間</strong>：通常在手術前一天報到，特殊情況可能會安排手術當天報到。請務必依照醫院給予的時間準時報到。</li>
+                    <li><strong>手術當天報到</strong>：若是安排手術當天報到，請確認報到時間，通常需要在手術預定時間前2-3小時抵達醫院。</li>
+                    <li><strong>提前確認</strong>：如有任何疑問，建議提前一天致電確認報到時間與地點。</li>
+                </ul>
+                
+                <div class="note-box">
+                    <div class="note-title">⚠️ 特別注意</div>
+                    <p>如果您臨時生病（如感冒、發燒）或身體狀況有變化，請立即通知醫院，以評估是否需要調整手術時間。</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="info-section">
+            <h2 class="section-title">
+                <span class="section-icon">🛌</span>住院環境與物品準備
+            </h2>
+            <div class="section-content">
+                <p>為了讓您在住院期間更舒適，建議您準備以下物品：</p>
+                <ul class="info-list">
+                    <li><strong>個人盥洗用品</strong>：牙刷、牙膏、毛巾、盥洗用具等</li>
+                    <li><strong>舒適衣物</strong>：睡衣、換洗衣物（建議穿著寬鬆、前開式衣物，便於手術後穿脫）</li>
+                    <li><strong>拖鞋</strong>：防滑、好清洗的拖鞋</li>
+                    <li><strong>個人藥物</strong>：您平時服用的藥物（請事先諮詢醫師是否可繼續使用）</li>
+                    <li><strong>娛樂物品</strong>：書籍、手機、耳機等（記得攜帶充電器）</li>
+                </ul>
+                
+                <p>醫院通常會提供：</p>
+                <ul class="info-list">
+                    <li>病床與床單</li>
+                    <li>基本餐飲</li>
+                    <li>病人服</li>
+                </ul>
+                
+                <div class="note-box">
+                    <div class="note-title">💡 住院小提醒</div>
+                    <p>病房可能設有Wi-Fi，但訊號強度依區域而異。建議攜帶少量現金，用於小額支出。貴重物品請盡量不要帶至醫院，以免遺失。</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="info-section">
+            <h2 class="section-title">
+                <span class="section-icon">❓</span>常見問題解答
+            </h2>
+            <div class="section-content">
+                <p><strong>Q: 家屬可以陪伴住院嗎？</strong><br>
+                A: 一般而言，成人病房允許一位家屬陪伴。因防疫政策或特殊情況，探病規定可能有所調整，建議向醫院確認最新規定。</p>
+                
+                <p><strong>Q: 住院費用如何計算？</strong><br>
+                A: 住院費用包含病房費、手術費、麻醉費、藥費等項目。健保身份者部分費用由健保給付，您需支付部分負擔。詳細費用可向醫院財務室或櫃檯詢問。</p>
+                
+                <p><strong>Q: 如何選擇病房等級？</strong><br>
+                A: 醫院通常提供不同等級的病房，如健保病房、雙人房、單人房等。各有不同費用與設備，您可根據需求和預算選擇。病房有限時，可能需要先入住暫時病房，再視情況安排轉床。</p>
+                
+                <p><strong>Q: 住院期間可以自行離開醫院嗎？</strong><br>
+                A: 除非取得醫師許可，否則住院期間不建議離開醫院。若有特殊情況需暫離，須向護理站報備並辦理相關手續。</p>
+            </div>
+        </div>
+        
+        <div class="navigation-buttons">
+            <a href="{{ url_for('greeting') }}" class="nav-button">
+                <span>←</span> 返回手術準備指南
+            </a>
+            <a href="{{ url_for('surgery_time') }}" class="nav-button">
+                手術時間相關問題 <span>→</span>
+            </a>
+        </div>
+    </div>
+</body>
+</html>

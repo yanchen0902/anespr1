@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>術前藥物相關問題 - 麻醉諮詢助手</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .subpage-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            font-family: 'Noto Sans TC', sans-serif;
+        }
+        
+        .subpage-header {
+            text-align: center;
+            margin-bottom: 40px;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 20px;
+        }
+        
+        .subpage-title {
+            color: #2c3e50;
+            font-size: 2rem;
+            margin-bottom: 15px;
+        }
+        
+        .subpage-icon {
+            font-size: 3rem;
+            margin: 15px 0;
+            color: #3498db;
+        }
+        
+        .info-section {
+            margin-bottom: 30px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+            padding: 25px;
+        }
+        
+        .section-title {
+            color: #3498db;
+            font-size: 1.4rem;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .section-icon {
+            margin-right: 12px;
+            font-size: 1.5rem;
+        }
+        
+        .section-content {
+            color: #34495e;
+            line-height: 1.7;
+        }
+        
+        .info-list {
+            padding-left: 20px;
+        }
+        
+        .info-list li {
+            margin-bottom: 12px;
+        }
+        
+        .note-box {
+            background-color: #f8f9fa;
+            border-left: 4px solid #f39c12;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 0 5px 5px 0;
+        }
+        
+        .warning-box {
+            background-color: #fef2f2;
+            border-left: 4px solid #e74c3c;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 0 5px 5px 0;
+        }
+        
+        .note-title {
+            color: #2c3e50;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .med-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        
+        .med-table th, .med-table td {
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        
+        .med-table th {
+            background-color: #f2f6f9;
+            color: #2c3e50;
+            font-weight: bold;
+        }
+        
+        .med-table tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        
+        .navigation-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 40px;
+        }
+        
+        .nav-button {
+            padding: 10px 20px;
+            background-color: #3498db;
+            color: white;
+            border-radius: 30px;
+            text-decoration: none;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        
+        .nav-button:hover {
+            background-color: #2980b9;
+        }
+    </style>
+</head>
+<body>
+    <div class="subpage-container">
+        <div class="subpage-header">
+            <div class="subpage-icon">💊</div>
+            <h1 class="subpage-title">術前藥物相關問題</h1>
+            <p class="subtitle">了解術前需停用的藥物及其建議停藥時間</p>
+        </div>
+        
+        <div class="info-section">
+            <h2 class="section-title">
+                <span class="section-icon">🩸</span>抗凝血劑及抗血小板藥物
+            </h2>
+            <div class="section-content">
+                <p>抗凝血劑與抗血小板藥物是常用於預防心血管疾病的藥物，但在手術前可能需要暫停使用以減少出血風險：</p>
+                
+                <table class="med-table">
+                    <tr>
+                        <th>藥物類型</th>
+                        <th>常見藥名</th>
+                        <th>建議停藥時間</th>
+                        <th>特殊考量</th>
+                    </tr>
+                    <tr>
+                        <td>抗血小板 (Antiplatelet)</td>
+                        <td>阿斯匹靈 (Aspirin)</td>
+                        <td>小手術可持續使用<br>大手術停用7-10天</td>
+                        <td>若有冠狀動脈支架，需與心臟科醫師討論</td>
+                    </tr>
+                    <tr>
+                        <td>抗血小板 (Antiplatelet)</td>
+                        <td>氯吡格雷 (Clopidogrel, Plavix)</td>
+                        <td>停用5-7天</td>
+                        <td>若有冠狀動脈支架，需與心臟科醫師討論</td>
+                    </tr>
+                    <tr>
+                        <td>抗血小板 (Antiplatelet)</td>
+                        <td>普拉格雷 (Prasugrel, Efient)</td>
+                        <td>停用7天</td>
+                        <td>若有冠狀動脈支架，需與心臟科醫師討論</td>
+                    </tr>
+                    <tr>
+                        <td>抗血小板 (Antiplatelet)</td>
+                        <td>替卡格雷 (Ticagrelor, Brilinta)</td>
+                        <td>停用5天</td>
+                        <td>若有冠狀動脈支架，需與心臟科醫師討論</td>
+                    </tr>
+                    <tr>
+                        <td>抗凝血劑 (Anticoagulant)</td>
+                        <td>華法林 (Warfarin)</td>
+                        <td>停用5-7天</td>
+                        <td>可能需要換用低分子量肝素橋接</td>
+                    </tr>
+                    <tr>
+                        <td>抗凝血劑 (Anticoagulant)</td>
+                        <td>達比加群 (Dabigatran, Pradaxa)</td>
+                        <td>腎功能正常：停用2-3天<br>腎功能不佳：停用3-5天</td>
+                        <td>高出血風險手術可能需要停用更久</td>
+                    </tr>
+                    <tr>
+                        <td>抗凝血劑 (Anticoagulant)</td>
+                        <td>利伐沙班 (Rivaroxaban, Xarelto)</td>
+                        <td>停用2-3天</td>
+                        <td>高出血風險手術可能需要停用更久</td>
+                    </tr>
+                    <tr>
+                        <td>抗凝血劑 (Anticoagulant)</td>
+                        <td>阿哌沙班 (Apixaban, Eliquis)</td>
+                        <td>停用2-3天</td>
+                        <td>高出血風險手術可能需要停用更久</td>
+                    </tr>
+                </table>
+                
+                <div class="warning-box">
+                    <div class="note-title">⚠️ 重要提醒</div>
+                    <p>停用抗凝血劑或抗血小板藥物前，<strong>必須</strong>先諮詢您的心臟科醫師或主治醫師，特別是若您有冠狀動脈支架或其他高風險心血管疾病。未經醫師指示請勿自行停藥。</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="info-section">
+            <h2 class="section-title">
+                <span class="section-icon">💉</span>SGLT2 抑制劑（降糖藥）
+            </h2>
+            <div class="section-content">
+                <p>SGLT2抑制劑是一類用於治療第2型糖尿病的藥物，在手術前需要特別處理以避免併發症：</p>
+                
+                <table class="med-table">
+                    <tr>
+                        <th>藥物通用名</th>
+                        <th>常見商品名</th>
+                        <th>建議停藥時間</th>
+                        <th>原因</th>
+                    </tr>
+                    <tr>
+                        <td>恩格列凈 (Empagliflozin)</td>
+                        <td>恩排糖 (Jardiance)</td>
+                        <td>手術前至少3天</td>
+                        <td rowspan="5">SGLT2抑制劑可能導致手術期間酮酸中毒風險增加，且可能影響體液平衡及血壓</td>
+                    </tr>
+                    <tr>
+                        <td>達格列凈 (Dapagliflozin)</td>
+                        <td>福適佳 (Forxiga)</td>
+                        <td>手術前至少3天</td>
+                    </tr>
+                    <tr>
+                        <td>卡格列凈 (Canagliflozin)</td>
+                        <td>可拿糖 (Invokana)</td>
+                        <td>手術前至少3天</td>
+                    </tr>
+                    <tr>
+                        <td>艾格列凈 (Ertugliflozin)</td>
+                        <td>婷格列凈 (Steglatro)</td>
+                        <td>手術前至少3天</td>
+                    </tr>
+                    <tr>
+                        <td>SGLT2抑制劑與其他藥物複方</td>
+                        <td>捷糖穩 (Glyxambi)、思科迪安 (Segluromet) 等</td>
+                        <td>手術前至少3天</td>
+                    </tr>
+                </table>
+                
+                <div class="note-box">
+                    <div class="note-title">💡 注意事項</div>
+                    <p>在停用SGLT2抑制劑期間，您可能需要使用其他藥物控制血糖。術前請與您的內分泌科醫師或主治醫師討論血糖管理計畫。</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="info-section">
+            <h2 class="section-title">
+                <span class="section-icon">💉</span>GLP-1受體激動劑（降糖藥）
+            </h2>
+            <div class="section-content">
+                <p>GLP-1受體激動劑用於治療第2型糖尿病，並常用於體重管理。這類藥物可能會影響胃排空速度和手術後恢復：</p>
+                
+                <table class="med-table">
+                    <tr>
+                        <th>藥物通用名</th>
+                        <th>常見商品名</th>
+                        <th>給藥頻率</th>
+                        <th>建議停藥時間</th>
+                    </tr>
+                    <tr>
+                        <td>利拉魯肽 (Liraglutide)</td>
+                        <td>諾和力 (Victoza)、薩塞納 (Saxenda)</td>
+                        <td>每日一次</td>
+                        <td>手術前1天</td>
+                    </tr>
+                    <tr>
+                        <td>塞馬魯肽 (Semaglutide)</td>
+                        <td>諾和瑞 (Ozempic)、衛高 (Wegovy)</td>
+                        <td>每週一次</td>
+                        <td>手術前1週</td>
+                    </tr>
+                    <tr>
+                        <td>度拉魯肽 (Dulaglutide)</td>
+                        <td>糖穩達 (Trulicity)</td>
+                        <td>每週一次</td>
+                        <td>手術前1週</td>
+                    </tr>
+                    <tr>
+                        <td>艾塞那肽 (Exenatide)</td>
+                        <td>百捷妥 (Byetta)、拜糖達 (Bydureon)</td>
+                        <td>每日兩次或每週一次</td>
+                        <td>每日型：手術前1天<br>每週型：手術前1週</td>
+                    </tr>
+                    <tr>
+                        <td>利西拉魯肽 (Lixisenatide)</td>
+                        <td>利基泰 (Lyxumia)</td>
+                        <td>每日一次</td>
+                        <td>手術前1天</td>
+                    </tr>
+                </table>
+                
+                <div class="note-box">
+                    <div class="note-title">💡 重要說明</div>
+                    <p>GLP-1受體激動劑可能會導致噁心、嘔吐及影響胃排空，因此在全身麻醉手術前暫時停用有助降低吸入性肺炎風險。術後應與醫師討論何時可以恢復使用。</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="info-section">
+            <h2 class="section-title">
+                <span class="section-icon">❓</span>常見問題解答
+            </h2>
+            <div class="section-content">
+                <p><strong>Q: 停藥後我應該怎麼管理原本的病情？</strong><br>
+                A: 停藥期間的疾病管理應在醫師指導下進行。部分情況下可能需要暫時使用替代藥物或調整劑量。</p>
+                
+                <p><strong>Q: 我可以在手術當天早上服用我的常規藥物嗎？</strong><br>
+                A: 大部分藥物可在手術當天早上用少量水送服，但上述需停用的藥物除外。請在術前諮詢時與麻醉醫師確認您可以服用的藥物清單。</p>
+                
+                <p><strong>Q: 何時可以恢復使用這些藥物？</strong><br>
+                A: 抗凝血劑及抗血小板藥物通常需等到術後出血風險降低後才能恢復；SGLT2抑制劑和GLP-1激動劑通常在正常進食後可恢復使用。具體時間請遵循醫師指示。</p>
+                
+                <p><strong>Q: 如果我忘記停藥該怎麼辦？</strong><br>
+                A: 如果您在應該停藥的期間內誤服了藥物，<strong>請立即通知醫療團隊</strong>，視情況可能需要調整手術計劃。</p>
+            </div>
+        </div>
+        
+        <div class="navigation-buttons">
+            <a href="{{ url_for('surgery_time') }}" class="nav-button">
+                <span>←</span> 手術時間相關問題
+            </a>
+            <a href="{{ url_for('anesthesia_safety') }}" class="nav-button">
+                麻醉安全介紹 <span>→</span>
+            </a>
+        </div>
+    </div>
+</body>
+</html>

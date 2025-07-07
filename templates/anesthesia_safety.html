@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>麻醉安全介紹 - 麻醉諮詢助手</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .subpage-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            font-family: 'Noto Sans TC', sans-serif;
+        }
+        
+        .subpage-header {
+            text-align: center;
+            margin-bottom: 40px;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 20px;
+        }
+        
+        .subpage-title {
+            color: #2c3e50;
+            font-size: 2rem;
+            margin-bottom: 15px;
+        }
+        
+        .subpage-icon {
+            font-size: 3rem;
+            margin: 15px 0;
+            color: #3498db;
+        }
+        
+        .info-section {
+            margin-bottom: 30px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+            padding: 25px;
+        }
+        
+        .section-title {
+            color: #3498db;
+            font-size: 1.4rem;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .section-icon {
+            margin-right: 12px;
+            font-size: 1.5rem;
+        }
+        
+        .section-content {
+            color: #34495e;
+            line-height: 1.7;
+        }
+        
+        .info-list {
+            padding-left: 20px;
+        }
+        
+        .info-list li {
+            margin-bottom: 12px;
+        }
+        
+        .note-box {
+            background-color: #f8f9fa;
+            border-left: 4px solid #f39c12;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 0 5px 5px 0;
+        }
+        
+        .warning-box {
+            background-color: #fef2f2;
+            border-left: 4px solid #e74c3c;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 0 5px 5px 0;
+        }
+        
+        .note-title {
+            color: #2c3e50;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .equipment-card {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            background-color: #f9f9f9;
+        }
+        
+        .equipment-title {
+            font-weight: bold;
+            color: #3498db;
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .equipment-icon {
+            margin-right: 10px;
+            font-size: 1.3rem;
+        }
+        
+        .equipment-description {
+            margin-bottom: 10px;
+        }
+        
+        .equipment-benefits {
+            font-style: italic;
+            color: #27ae60;
+        }
+        
+        .navigation-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 40px;
+        }
+        
+        .nav-button {
+            padding: 10px 20px;
+            background-color: #3498db;
+            color: white;
+            border-radius: 30px;
+            text-decoration: none;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        
+        .nav-button:hover {
+            background-color: #2980b9;
+        }
+    </style>
+</head>
+<body>
+    <div class="subpage-container">
+        <div class="subpage-header">
+            <div class="subpage-icon">🛡️</div>
+            <h1 class="subpage-title">麻醉安全介紹</h1>
+            <p class="subtitle">認識麻醉方式、安全監測及先進設備</p>
+        </div>
+        
+        <!-- 麻醉方式介紹區段 -->
+        <div class="info-section">
+            <h2 class="section-title">
+                <span class="section-icon">💤</span>麻醉方式簡介
+            </h2>
+            <div class="section-content">
+                <p>麻醉是現代醫學中不可或缺的重要技術，能讓患者在手術過程中不感到疼痛。以下是幾種常見的麻醉方式：</p>
+                
+                <h3>全身麻醉</h3>
+                <p>全身麻醉讓患者進入完全無意識的狀態，適用於大型或複雜手術。</p>
+                <ul class="info-list">
+                    <li><strong>過程</strong>：通常先靜脈注射麻醉藥物，再通過呼吸道維持麻醉狀態</li>
+                    <li><strong>特點</strong>：完全無意識、無記憶、無痛覺、肌肉放鬆</li>
+                    <li><strong>適用手術</strong>：腹部手術、胸腔手術、腦部手術等需要患者完全靜止的手術</li>
+                </ul>
+                
+                <h3>區域麻醉</h3>
+                <p>區域麻醉僅使身體特定部位失去感覺，患者保持清醒或輕度鎮靜。</p>
+                <ul class="info-list">
+                    <li><strong>硬脊膜外麻醉</strong>：麻醉藥注入脊椎旁的硬脊膜外腔，常用於剖腹產</li>
+                    <li><strong>脊椎麻醉</strong>：麻醉藥直接注入脊髓液中，適用於下半身手術</li>
+                    <li><strong>神經阻滯</strong>：封鎖特定神經，例如臂叢神經阻滯用於上肢手術</li>
+                </ul>
+                
+                <h3>局部麻醉</h3>
+                <p>僅麻醉手術部位的表淺組織，適用於小型手術或程序。</p>
+                <ul class="info-list">
+                    <li><strong>過程</strong>：直接在手術部位注射麻醉藥物</li>
+                    <li><strong>特點</strong>：僅手術部位失去感覺，患者完全清醒</li>
+                    <li><strong>適用手術</strong>：小傷口縫合、皮膚小手術、牙科治療等</li>
+                </ul>
+                
+                <h3>監控下麻醉照護</h3>
+                <p>介於清醒與全身麻醉之間的狀態，提供鎮靜但可喚醒。</p>
+                <ul class="info-list">
+                    <li><strong>過程</strong>：靜脈給予鎮靜藥物，但不需使用呼吸道裝置</li>
+                    <li><strong>特點</strong>：淺層鎮靜可保持自主呼吸，深層鎮靜接近全身麻醉</li>
+                    <li><strong>適用手術</strong>：胃腸道內視鏡、骨科小手術、牙科複雜治療等</li>
+                </ul>
+                
+                <div class="note-box">
+                    <div class="note-title">💡 麻醉方式的選擇</div>
+                    <p>麻醉方式的選擇取決於多種因素，包括：手術類型、手術時間長短、患者身體狀況、患者偏好等。麻醉專科醫師會評估這些因素，為您選擇最安全、最適合的麻醉方式。</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 麻醉安全監測區段 -->
+        <div class="info-section">
+            <h2 class="section-title">
+                <span class="section-icon">📊</span>標準麻醉安全監測
+            </h2>
+            <div class="section-content">
+                <p>麻醉過程中，麻醉專科醫師會運用多種標準監測設備，持續監測患者的生命徑象和麻醉狀況，確保手術全程的安全。</p>
+                
+                <h3>基本生命徑象監測</h3>
+                <ul class="info-list">
+                    <li><strong>心率與心電圖監測</strong>: 透過心電圖(ECG)持續觀察心臟的電活動，及早發現異常。</li>
+                    <li><strong>血壓監測</strong>: 自動量測血壓，通常每3-5分鐘測量一次，確保血壓維持在安全範圍。</li>
+                    <li><strong>血氧飽和度監測</strong>: 透過脈搏血氧計在手指或耳圖上即時監測血氧含量。</li>
+                    <li><strong>體溫監測</strong>: 持續監測患者體溫，預防低體溫或高熱。</li>
+                </ul>
+                
+                <h3>呼吸監測</h3>
+                <ul class="info-list">
+                    <li><strong>呼吸麻醉氣體分析儀</strong>: 監測吸入與呼出氣體成分，包括氧氣、二氧化碳、麻醉氣體濃度。</li>
+                    <li><strong>氧氣與二氧化碳濃度監測</strong>: 確保合適的呼吸水平和氣體交換。</li>
+                    <li><strong>呼吸參數監測</strong>: 包括潮氣量、呼吸率、氣道壓力等數據。</li>
+                </ul>
+                
+                <h3>神經肌肉功能監測</h3>
+                <p>全身麻醉過程中，會使用肌肉放鬆藥來輕鬆患者肌肉，以便手術進行。神經肌肉功能監測可評估能偵測：</p>
+                <ul class="info-list">
+                    <li><strong>肌肉放鬆程度</strong>: 使用神經肌肉偵測儀監測能測量肌肉對神經刺激的反應。</li>
+                    <li><strong>麻醉藥物管理</strong>: 需要時減少放鬆藥的使用，特別是手術即將結束時。</li>
+                </ul>
+
+                <div class="warning-box">
+                    <div class="note-title">⚠️ 安全標準</div>
+                    <p>國際麻醉安全標準規定，所有接受麻醉的患者必須持續監測心率、血壓、血氧飽和度、體溫和呼吸狀態。這些基本監測是每位接受麻醉患者都會獲得的標準照護。</p>
+                </div>
+
+                <p>麻醉醫師會不斷評估這些監測數據，以調整麻醉藥物加量、輕鬆液體管理和其他幹預措施，確保手術全程的安全與湖掛。</p>
+            </div>
+        </div>
+        
+        <!-- 先進監測設備區段 -->
+        <div class="info-section">
+            <h2 class="section-title">
+                <span class="section-icon">🔬</span>先進麻醉監測設備
+            </h2>
+            <div class="section-content">
+                <p>除了標準監測設備外，我們還提供多種先進監測設備及增強麻醉安全技術，以提高手術的安全性和綜合照護品質。這些選項可根據手術類型和患者狀況進行選擇。</p>
+                
+                <div class="equipment-card">
+                    <h3 class="equipment-title"><span class="equipment-icon">🧠</span>麻醉深度監測</h3>
+                    <p class="equipment-description">這種設備利用腦電圖分析技術，即時監測麻醉深度，產生0-100的數字指標，可讓麻醉醫師準確調整麻醉藥物劊量。</p>
+                    <p class="equipment-benefits">好處：減輕麻醉藥物過量風險，精準減少麻醉藥物使用，減少手術後變異行為常見於老人及小兒。</p>
+                </div>
+                
+                <div class="equipment-card">
+                    <h3 class="equipment-title"><span class="equipment-icon">💪</span>肌肉放鬆監測儀</h3>
+                    <p class="equipment-description">全麻手術中使用肌肉放鬆藥時，可減少藥物殘留導致的常見危險（手術後呼吸衝動）。可減少歸病低温風險。</p>
+                    <p class="equipment-benefits">好處：確保肌肉完全復原，幫助醫師計算適當藥物劑量，降低手術後呼吸不適風險。</p>
+                </div>
+                
+                <div class="equipment-card">
+                    <h3 class="equipment-title"><span class="equipment-icon">🌡️</span>沖浴式保溫毛毯</h3>
+                    <p class="equipment-description">無接觸式保溫設備，有效預防手術非自主性體溫下降，尤其適用於大型手術、老年患者、延長手術。</p>
+                    <p class="equipment-benefits">好處：減少血征時間，預防傷口感染，降低血液凍固相關併發症。</p>
+                </div>
+                
+                <div class="equipment-card">
+                    <h3 class="equipment-title"><span class="equipment-icon">💊</span>手術後自控鎮痛(PCA)</h3>
+                    <p class="equipment-description">病人可依痛痛程度自主按壓鎮痛藥物量，毛細加量、自控性高。設有限制裝置避免過量。</p>
+                    <p class="equipment-benefits">好處：改善痛痛控制，減少住院天數，提高病人滿意度，降低肉體痛痛慎慌心理壑力。</p>
+                </div>
+                
+                <div class="equipment-card">
+                    <h3 class="equipment-title"><span class="equipment-icon">🧠</span>腦部氧合量監測</h3>
+                    <p class="equipment-description">使用近紅外光譜檢測，無创即時監測腦組織的氧合量。對高風險腦部手術、心臟手術、新生兒唝喉黑色素無創手術致命率，希望重視腦部異常防止腦部損害改善預後的病人大有幫助。</p>
+                    <p class="equipment-benefits">好處：提早發現腦部缺氧，減少腦部併發症，適合腦部手術、心臟手術和高風險患者。</p>
+                </div>
+                
+                <div class="equipment-card">
+                    <h3 class="equipment-title"><span class="equipment-icon">🤢</span>麵醉性止嘀的藥物</h3>
+                    <p class="equipment-description">預防性使用高效止嘀的藥物，適用於高風險嘀吐病人。</p>
+                    <p class="equipment-benefits">好處：減少手術後噬吐，改善恢復體驗，降低吸入性肺炎風險。</p>
+                </div>
+
+                <div class="note-box">
+                    <div class="note-title">💡 專業���議</div>
+                    <p>麻醉醫師會根據手術類型、患者情況和麻醉風險評估，建議適合的進階監測設備。這些設備可能需要額外自費，請在手術前與麻醉醫師討論，了解哪些對您的情況最有幫助。</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 麻醉相關迷思解析區段 -->
+        <div class="info-section">
+            <h2 class="section-title">
+                <span class="section-icon">❓</span>常見麻醉迷思解析
+            </h2>
+            <div class="section-content">
+                <p>關於麻醉的認知中，存在著許多迷思與誤解。讓我們一起澳清一些常見的麻醉迷思，幫助您更安心地面對手術。</p>
+                
+                <div class="equipment-card">
+                    <h3 class="equipment-title"><span class="equipment-icon">❌</span>迷思：麻醉很危險，可能會導致患者不恢復</h3>
+                    <p><strong>事實：</strong>現代麻醉非常安全，重大不良反應的發生率非常低。根據統計，健康人士因麻醉本身導致死亡的機率奇低，約為百萬分之一。現代麻醉的安全標準、完善的監測設備與麻醉專科醫師的訓練，使麻醉風險降至最低。</p>
+                </div>
+                
+                <div class="equipment-card">
+                    <h3 class="equipment-title"><span class="equipment-icon">❌</span>迷思：麻醉後會導致記憶力永久下降</h3>
+                    <p><strong>事實：</strong>麻醉藥物不會導致記憶力永久受損。少數患者可能會在手術後短時間內出現記憶力模糊或認知功能更曾，但這種情況通常會在數天內自行恢復。老年人恢復時間可能稍長，但現代麻醉技術已大幅減少此類影響。</p>
+                </div>
+                
+                <div class="equipment-card">
+                    <h3 class="equipment-title"><span class="equipment-icon">❌</span>迷思：麻醉中我可能會釘轉，痛苦卻不能表達</h3>
+                    <p><strong>事實：</strong>全身麻醉時患者處於完全無意識狀態，不會有「釘轉」的情況發生。現代麻醉監測設備能持續監測麻醉深度，確保患者在手術期間保持適當的麻醉深度。區域麻醉時，患者雖然清醒，但手術部位已完全無痛覺。</p>
+                </div>
+                
+                <div class="equipment-card">
+                    <h3 class="equipment-title"><span class="equipment-icon">❌</span>迷思：麻醉後會導致噬吐不止</h3>
+                    <p><strong>事實：</strong>雖然手術後噬吐是常見副作用，但現代麻醉技術和藥物已大幅減少這種情況。另外，麻醉醫師可使用有效的止嘀藥物預防和治療噬吐。大多數患者如出現噬吐，通常只持續短時間。</p>
+                </div>
+                
+                <div class="equipment-card">
+                    <h3 class="equipment-title"><span class="equipment-icon">❌</span>迷思：吃食物或吃藥後不能麻醉</h3>
+                    <p><strong>事實：</strong>為防止肺部吸入不慎，醫師確實會要求全麻患者空腹，通常固體食品6-8小時、清液2小時內不進食。但如遇緊急情況，醫師會采取特別麻醉方式與氣道保護措施，以降低風險。至於常規用藥，多數情況下應按排展續使用，但應在評估時告知麻醉醫師。</p>
+                </div>
+
+                <div class="note-box">
+                    <div class="note-title">💡 如何準備麻醉</div>
+                    <p>最重要的是保持開放的溝通。手術前請詳細說明您的病史、藥物過敏和常規用藥。不要密藏任何資訊，包括輕微不適、使用酒精、藥物或肉毛藥等情況。如有疑問，請如實告知麻醉醫師，讓他們為您提供最安全的麻醉照護。</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 導覽按鈕 -->
+        <div class="navigation-buttons">
+            <a href="{{ url_for('pre_surgery_medication') }}" class="nav-button">
+                <span>←</span> 術前藥物相關問題
+            </a>
+            <a href="{{ url_for('greeting') }}" class="nav-button">
+                返回指南首頁 <span>→</span>
+            </a>
+        </div>
+    </div>
+</body>
+</html>

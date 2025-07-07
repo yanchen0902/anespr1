@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>手術時間相關問題 - 麻醉諮詢助手</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .subpage-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            font-family: 'Noto Sans TC', sans-serif;
+        }
+        
+        .subpage-header {
+            text-align: center;
+            margin-bottom: 40px;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 20px;
+        }
+        
+        .subpage-title {
+            color: #2c3e50;
+            font-size: 2rem;
+            margin-bottom: 15px;
+        }
+        
+        .subpage-icon {
+            font-size: 3rem;
+            margin: 15px 0;
+            color: #3498db;
+        }
+        
+        .info-section {
+            margin-bottom: 30px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+            padding: 25px;
+        }
+        
+        .section-title {
+            color: #3498db;
+            font-size: 1.4rem;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .section-icon {
+            margin-right: 12px;
+            font-size: 1.5rem;
+        }
+        
+        .section-content {
+            color: #34495e;
+            line-height: 1.7;
+        }
+        
+        .info-list {
+            padding-left: 20px;
+        }
+        
+        .info-list li {
+            margin-bottom: 12px;
+        }
+        
+        .note-box {
+            background-color: #f8f9fa;
+            border-left: 4px solid #f39c12;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 0 5px 5px 0;
+        }
+        
+        .warning-box {
+            background-color: #fef2f2;
+            border-left: 4px solid #e74c3c;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 0 5px 5px 0;
+        }
+        
+        .note-title {
+            color: #2c3e50;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .time-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        
+        .time-table th, .time-table td {
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+        }
+        
+        .time-table th {
+            background-color: #f2f6f9;
+            color: #2c3e50;
+            font-weight: bold;
+            text-align: left;
+        }
+        
+        .time-table tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        
+        .navigation-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 40px;
+        }
+        
+        .nav-button {
+            padding: 10px 20px;
+            background-color: #3498db;
+            color: white;
+            border-radius: 30px;
+            text-decoration: none;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        
+        .nav-button:hover {
+            background-color: #2980b9;
+        }
+    </style>
+</head>
+<body>
+    <div class="subpage-container">
+        <div class="subpage-header">
+            <div class="subpage-icon">⏰</div>
+            <h1 class="subpage-title">手術時間相關問題</h1>
+            <p class="subtitle">了解禁食時間、手術排程、術後恢復時間等實用資訊</p>
+        </div>
+        
+        <div class="info-section">
+            <h2 class="section-title">
+                <span class="section-icon">🍽️</span>術前禁食規定
+            </h2>
+            <div class="section-content">
+                <p>為了確保手術安全，避免麻醉過程中嘔吐或誤吸風險，您必須在手術前遵守禁食原則：</p>
+                
+                <table class="time-table">
+                    <tr>
+                        <th>食物/飲料類型</th>
+                        <th>禁食時間 (至少)</th>
+                    </tr>
+                    <tr>
+                        <td>固體食物、奶製品</td>
+                        <td>手術前8小時</td>
+                    </tr>
+                    <tr>
+                        <td>清流質（如清水、蘋果汁無渣）</td>
+                        <td>手術前2小時</td>
+                    </tr>
+                    <tr>
+                        <td>口服藥物（經醫師允許服用的）</td>
+                        <td>可用少量清水送服</td>
+                    </tr>
+                </table>
+                
+                <div class="warning-box">
+                    <div class="note-title">⚠️ 重要提醒</div>
+                    <p>違反禁食規定可能導致手術取消！若您不慎在禁食期間進食或喝水，<strong>務必</strong>立即告知醫護人員。術前禁食是為了您的安全，請務必遵守。</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="info-section">
+            <h2 class="section-title">
+                <span class="section-icon">📅</span>手術排程與流程
+            </h2>
+            <div class="section-content">
+                <p>了解手術的時間安排和當天流程，可以幫助您做好心理準備：</p>
+                
+                <h4>一般手術流程時間點：</h4>
+                <ul class="info-list">
+                    <li><strong>術前準備（約30-60分鐘）</strong>：包括更換手術衣、靜脈注射、麻醉前諮詢等</li>
+                    <li><strong>麻醉時間（約15-30分鐘）</strong>：依麻醉方式不同而異</li>
+                    <li><strong>手術時間</strong>：視手術類型而定，從30分鐘到數小時不等</li>
+                    <li><strong>恢復室停留（約30-60分鐘）</strong>：麻醉甦醒與生命徵象監測</li>
+                    <li><strong>返回病房</strong>：狀況穩定後送回病房</li>
+                </ul>
+                
+                <div class="note-box">
+                    <div class="note-title">📢 手術排程注意事項</div>
+                    <p>手術排程僅為預估時間，實際時間可能因各種因素而有所調整：</p>
+                    <ul>
+                        <li>前一台手術延長</li>
+                        <li>緊急手術插入</li>
+                        <li>術前評估需更多時間</li>
+                    </ul>
+                    <p>建議您和家屬有心理準備，可能需要等待。醫護人員會隨時通知最新情況。</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="info-section">
+            <h2 class="section-title">
+                <span class="section-icon">🔄</span>術後恢復時間
+            </h2>
+            <div class="section-content">
+                <p>術後恢復時間因手術類型與個人情況而異，以下是常見手術的大致恢復時間參考：</p>
+                
+                <table class="time-table">
+                    <tr>
+                        <th>恢復階段</th>
+                        <th>預估時間</th>
+                        <th>說明</th>
+                    </tr>
+                    <tr>
+                        <td>麻醉甦醒</td>
+                        <td>30分鐘-2小時</td>
+                        <td>在恢復室完全清醒</td>
+                    </tr>
+                    <tr>
+                        <td>進食恢復</td>
+                        <td>6-24小時</td>
+                        <td>從流質到正常飲食</td>
+                    </tr>
+                    <tr>
+                        <td>下床活動</td>
+                        <td>手術當天-3天</td>
+                        <td>視手術類型而定</td>
+                    </tr>
+                    <tr>
+                        <td>住院天數</td>
+                        <td>日間手術-7天</td>
+                        <td>依手術複雜度與恢復情況而異</td>
+                    </tr>
+                    <tr>
+                        <td>完全恢復</td>
+                        <td>1週-6週</td>
+                        <td>回復日常活動能力</td>
+                    </tr>
+                </table>
+                
+                <div class="note-box">
+                    <div class="note-title">💡 加速恢復的建議</div>
+                    <p>以下方法可能有助於您術後更快恢復：</p>
+                    <ul>
+                        <li>遵循醫師指示進行早期活動</li>
+                        <li>適當的深呼吸與咳嗽練習（預防肺部併發症）</li>
+                        <li>均衡飲食與充分水分攝取</li>
+                        <li>遵照醫囑服用止痛藥，不要忍痛</li>
+                        <li>保持傷口清潔與乾燥</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="info-section">
+            <h2 class="section-title">
+                <span class="section-icon">❓</span>常見問題解答
+            </h2>
+            <div class="section-content">
+                <p><strong>Q: 我的手術會準時開始嗎？</strong><br>
+                A: 醫院會盡量按照排程進行，但可能因急診或前一台手術延長而有所延遲。建議有彈性的時間安排。</p>
+                
+                <p><strong>Q: 手術當天需要多早到達醫院？</strong><br>
+                A: 一般而言，手術前2-3小時報到，以便完成術前準備。具體時間會由醫院通知。</p>
+                
+                <p><strong>Q: 如果我的手術延期了，禁食要怎麼處理？</strong><br>
+                A: 若手術延期超過預期時間，請諮詢醫護人員關於禁食的調整建議。在未獲醫護人員許可前，請繼續遵守禁食規定。</p>
+                
+                <p><strong>Q: 術後多久可以出院？</strong><br>
+                A: 視手術類型與恢復情況而定。小型手術可能當天出院，較大型手術則需住院數日。出院時間由醫師評估決定。</p>
+            </div>
+        </div>
+        
+        <div class="navigation-buttons">
+            <a href="{{ url_for('hospital_admission') }}" class="nav-button">
+                <span>←</span> 住院報到相關問題
+            </a>
+            <a href="{{ url_for('pre_surgery_medication') }}" class="nav-button">
+                術前藥物相關問題 <span>→</span>
+            </a>
+        </div>
+    </div>
+</body>
+</html>

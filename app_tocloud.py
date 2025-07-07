@@ -1201,5 +1201,30 @@ def evaluate_chatbot(id):
 
 
 
+@app.route('/greeting')
+def greeting():
+    """Display the greeting page with general surgery information"""
+    return render_template('greeting.html')
+
+@app.route('/hospital_admission')
+def hospital_admission():
+    """住院報到相關問題"""
+    return render_template('hospital_admission.html')
+
+@app.route('/surgery_time')
+def surgery_time():
+    """手術時間相關問題"""
+    return render_template('surgery_time.html')
+
+@app.route('/pre_surgery_medication')
+def pre_surgery_medication():
+    """術前藥物相關問題"""
+    return render_template('pre_surgery_medication.html')
+
+@app.route('/anesthesia_safety')
+def anesthesia_safety():
+    """麻醉安全介紹"""
+    return render_template('anesthesia_safety.html')
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.getenv('PORT', 8080)), debug=True)
