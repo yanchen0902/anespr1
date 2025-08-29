@@ -520,63 +520,62 @@ except Exception as e:
     logger.error(f"Failed to initialize Gemini model at startup: {str(e)}")
     model = None
 
-# Initialize OpenAI API
-OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
-if not OPENAI_API_KEY:
-    logger.error("OpenAI API key not found in environment variables")
+# Initialize Azure OpenAI API
+AZURE_OPENAI_API_KEY = os.getenv('AZURE_OPENAI_API_KEY')
+AZURE_OPENAI_ENDPOINT = os.getenv('AZURE_OPENAI_ENDPOINT')
+AZURE_OPENAI_API_VERSION = os.getenv('AZURE_OPENAI_API_VERSION', '2024-12-01-preview')
+AZURE_OPENAI_DEPLOYMENT_NAME = os.getenv('AZURE_OPENAI_DEPLOYMENT_NAME')
+
+if not all([AZURE_OPENAI_API_KEY, AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_DEPLOYMENT_NAME]):
+    logger.error("Azure OpenAI configuration incomplete. Required: API_KEY, ENDPOINT, DEPLOYMENT_NAME")
+    azure_openai_client = None
 else:
-    logger.info(f"OpenAI API key loaded: {OPENAI_API_KEY[:5]}...{OPENAI_API_KEY[-4:]}")
-    openai.api_key = OPENAI_API_KEY
+    logger.info(f"Azure OpenAI configuration loaded: {AZURE_OPENAI_API_KEY[:5]}...{AZURE_OPENAI_API_KEY[-4:]}")
+    logger.info(f"Azure OpenAI endpoint: {AZURE_OPENAI_ENDPOINT}")
+    logger.info(f"Azure OpenAI deployment: {AZURE_OPENAI_DEPLOYMENT_NAME}")
+    
+    try:
+        from openai import AzureOpenAI
+        azure_openai_client = AzureOpenAI(
+            api_key=AZURE_OPENAI_API_KEY,
+            api_version=AZURE_OPENAI_API_VERSION,
+            azure_endpoint=AZURE_OPENAI_ENDPOINT
+        )
+        logger.info("Azure OpenAI client initialized successfully")
+    except Exception as e:
+        logger.error(f"Failed to initialize Azure OpenAI client: {str(e)}")
+        azure_openai_client = None
 
 def get_openai_response(message, patient_info):
-    """Get response from OpenAI model (currently disabled due to billing)"""
+    """Get response from Azure OpenAI model"""
     try:
-        logger.info("OpenAI API calls disabled due to billing constraints")
+        if not azure_openai_client:
+            logger.error("Azure OpenAI client not initialized")
+            return "抱歉，Azure OpenAI 服務未設定。"
+            
+        # Use separated prompts for Azure OpenAI
+        from prompt_templates import get_separated_prompts
+        system_prompt, user_prompt = get_separated_prompts(message, patient_info)
+        logger.info("Sending request to Azure OpenAI...")
         
-        # Create context for logging purposes only
-        context = create_context(message, patient_info)
-        logger.info(f"Would have sent the following context to OpenAI: {context[:100]}...")
-        
-        # Return a standard response instead of calling the API
-        standard_response = (
-            "由於系統維護，目前暫時無法提供個人化的麻醉諮詢。\n\n"
-            "如果您有緊急的麻醉相關問題，請直接聯繫醫院麻醉科或您的主治醫師。\n\n"
-            "感謝您的理解與配合。"
+        response = azure_openai_client.chat.completions.create(
+            model=AZURE_OPENAI_DEPLOYMENT_NAME,  # This is the deployment name, not model name
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            max_completion_tokens=1000
         )
+        logger.info("Received response from Azure OpenAI")
         
-        return format_response(standard_response)
+        if not response or not response.choices:
+            logger.error("Empty response from Azure OpenAI")
+            return "抱歉，Azure OpenAI 回應為空。"
+            
+        return format_response(response.choices[0].message.content)
     except Exception as e:
-        logger.error(f"Error in response generation: {str(e)}", exc_info=True)
-        return f"抱歉，系統回應出現錯誤：{str(e)}"
-#def get_openai_response(message, patient_info):
-   # """Get response from OpenAI model"""
-   # try:
-   #     if not openai.api_key:
-   #         logger.error("OpenAI API key not set")
-   #         return "抱歉，OpenAI API 金鑰未設定。"
-            
-   #     context = create_context(message, patient_info)
-   #     logger.info("Sending request to OpenAI...")
-        
-   #     response = openai.chat.completions.create(
-   #         model="gpt-3.5-turbo",
-   #         messages=[
-   #             {"role": "system", "content": "你是一位專業的麻醉諮詢助手，請根據病人的資訊提供適當的建議。"},
-   #             {"role": "user", "content": context}
-   #         ],
-   #         temperature=0.7,
-   #         max_tokens=1000
-   #     )
-   #     logger.info("Received response from OpenAI")
-        
-   #     if not response or not response.choices:
-   #         logger.error("Empty response from OpenAI")
-   #         return "抱歉，OpenAI 回應為空。"
-            
-   #     return format_response(response.choices[0].message.content)
-   # except Exception as e:
-   #     logger.error(f"Error getting OpenAI response: {str(e)}", exc_info=True)
-   #     return f"抱歉，OpenAI 回應出現錯誤：{str(e)}"
+        logger.error(f"Error getting Azure OpenAI response: {str(e)}", exc_info=True)
+        return f"抱歉，Azure OpenAI 回應出現錯誤：{str(e)}"
 
 @app.route('/')
 def home():

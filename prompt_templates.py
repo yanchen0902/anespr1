@@ -7,7 +7,7 @@ This module contains all the prompt templates used for different surgery types a
 # Pediatric prompt (under 18 years)
 PEDIATRIC_PROMPT = """## Role: 兒童麻醉諮詢助手
 ### 基本原則:
-- 使用繁體中文，清楚說明，盡量在200字以內
+- 使用繁體中文，清楚說明，盡量在400字以內
 - 以溫暖、關懷的語氣對家長回答問題
 - 非麻醉相關問題請轉介其他專業醫師
 - 針對麻醉相關問題提供醫學正確的資訊
@@ -34,7 +34,7 @@ PEDIATRIC_PROMPT = """## Role: 兒童麻醉諮詢助手
 # Adult prompt (18-64 years)
 ADULT_PROMPT = """## Role: 麻醉諮詢助手
 ### 基本原則:
-- 使用繁體中文，清楚說明，盡量在200字以內
+- 使用繁體中文，清楚說明，盡量在400字以內
 - 以友善、專業的語氣回答問題
 - 非麻醉相關問題請轉介其他專業醫師
 - 針對麻醉相關問題提供醫學正確的資訊
@@ -55,7 +55,7 @@ ADULT_PROMPT = """## Role: 麻醉諮詢助手
 # Geriatric prompt (65+ years)
 GERIATRIC_PROMPT = """## Role: 高齡病患麻醉諮詢助手
 ### 基本原則:
-- 使用繁體中文，清楚說明，盡量在200字以內
+- 使用繁體中文，清楚說明，盡量在400字以內
 - 以耐心、尊重的語氣對病患或家屬回答問題
 - 非麻醉相關問題請轉介其他專業醫師
 - 針對麻醉相關問題提供醫學正確的資訊
@@ -376,7 +376,7 @@ def get_age_appropriate_prompt(patient_info):
         # If no age information, use default prompt
         return GENERAL_PROMPT
 
-# Main function to generate the complete four-part prompt
+# Main function to generate the complete four-part prompt (legacy)
 def get_prompt(message, patient_info):
     """Generate a complete four-part prompt based on patient info and message"""
     # Part 1: Get age-appropriate general prompt
@@ -405,6 +405,47 @@ def get_prompt(message, patient_info):
 
 問題: {message}
 """
+
+# New function for Azure OpenAI with separate system and user prompts
+def get_separated_prompts(message, patient_info):
+    """Generate separate system and user prompts for Azure OpenAI
+    
+    Returns:
+        tuple: (system_prompt, user_prompt)
+            - system_prompt: Part 1 (age-appropriate prompt) + Part 3 (surgery-specific)
+            - user_prompt: Part 2 (patient info) + Part 4 (question-specific) + message
+    """
+    # Part 1: Get age-appropriate general prompt (SYSTEM)
+    general_part = get_age_appropriate_prompt(patient_info)
+    
+    # Part 2: Patient info section (USER)
+    patient_info_part = create_patient_info_section(patient_info)
+    
+    # Part 3: Determine surgery type and get relevant prompt (SYSTEM)
+    surgery_type = get_surgery_type(patient_info.get('operation', '')) if patient_info else 'general'
+    surgery_part = SURGERY_SPECIFIC_PROMPTS.get(surgery_type, "### 一般手術麻醉考量:\n- 根據手術部位選擇適當麻醉方式\n- 術前評估整體健康狀況\n- 術中維持穩定生命徵象\n- 術後疼痛控制及恢復照護")
+    
+    # Part 4: Determine question type and get relevant prompt (USER)
+    question_type = get_question_type(message)
+    question_part = QUESTION_SPECIFIC_PROMPTS.get(question_type, QUESTION_SPECIFIC_PROMPTS['general'])
+    
+    # Combine system context (Part 1 + Part 3)
+    system_prompt = f"""
+{general_part}
+
+{surgery_part}
+"""
+    
+    # Combine user context (Part 2 + Part 4 + message)
+    user_prompt = f"""
+{patient_info_part}
+
+{question_part}
+
+問題: {message}
+"""
+    
+    return system_prompt.strip(), user_prompt.strip()
 
 # Backward compatibility with existing code
 def format_prompt(template, patient_info_section, message):
