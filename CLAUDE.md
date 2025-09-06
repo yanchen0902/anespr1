@@ -127,10 +127,27 @@ python -m unittest --version 2>/dev/null || echo "unittest available (built-in)"
 
 ## Deployment Information
 
-### Google Cloud App Engine
+### Branch Structure
+- **main/evaluation_mode**: Development branches for Windows environment
+- **linux-deployment**: Production deployment branch for Linux servers
+  - Contains Linux-specific configurations
+  - MySQL database setup instead of SQLite
+  - Production environment variables
+  - Nginx/Gunicorn configuration files
+
+### Google Cloud App Engine (Legacy)
 - Project: anespr1-asia-east
 - Cloud SQL Instance: anespr1-asia-east:asia-east1:anespr1
-- Connection: mysql+pymysql://root:anespr123@/patients?unix_socket=/cloudsql/anespr1-asia-east:asia-east1:anespr1
+- Connection: mysql+pymysql://root:anespr123@/patients?unix_socket=/cloudsql/anespr1-asia-east:anespr1
+
+### Linux Server Deployment
+- **Database**: MySQL 8.0+ (production), SQLite (development only)
+- **Web Server**: Nginx with SSL/TLS
+- **WSGI Server**: Gunicorn with 4 workers
+- **Process Manager**: Supervisor for service management
+- **Host**: 0.0.0.0 (production), configurable
+- **Port**: 8000 (Gunicorn), 80/443 (Nginx)
+- **Environment**: Production mode with comprehensive logging
 
 ### Local Development
 - Host: 0.0.0.0
@@ -175,6 +192,18 @@ python -m unittest --version 2>/dev/null || echo "unittest available (built-in)"
 
 ## Recent Updates
 
+### 2025-09-06: Linux Deployment Branch Setup
+- **Branch Management**: Created `linux-deployment` branch for production deployment
+  - Separated from development branches (`evaluation_mode`, `main`)
+  - Dedicated to Linux server deployment configurations
+  - Safe environment for major deployment-related changes
+- **Deployment Documentation**: Added comprehensive `DEPLOYMENT.md` guide
+  - Complete Linux server setup instructions
+  - MySQL database configuration
+  - Nginx/Gunicorn/Supervisor setup
+  - Security hardening and SSL configuration
+  - Monitoring and maintenance procedures
+
 ### 2025-01-29: Azure OpenAI Prompt Structure Optimization
 - **Enhanced Prompt Architecture**: Implemented separated system and user prompts for Azure OpenAI integration
   - **System Prompt**: Contains age-appropriate medical guidelines + surgery-specific protocols (Part 1 + Part 3)
@@ -198,3 +227,4 @@ python -m unittest --version 2>/dev/null || echo "unittest available (built-in)"
 - Requires medical domain expertise for prompt updates
 - Healthcare compliance considerations apply
 - This is the future plan
+- laeve as-is for now and fix when production
