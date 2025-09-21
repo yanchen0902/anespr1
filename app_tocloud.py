@@ -700,8 +700,10 @@ def chat():
             # Add user_id to patient_info for chat history
             patient_info['user_id'] = user_id
             
-            # Get responses from both models
-            gemini_response = get_bot_response(message, patient_info)
+            # Get response from primary model (Ollama or Gemini based on USE_LOCAL_MODEL)
+            primary_response = get_bot_response(message, patient_info)
+
+            # Always get Azure OpenAI response
             openai_response = get_openai_response(message, patient_info)
             
             # Save chat history with both responses - SIMPLIFIED VERSION
@@ -710,14 +712,14 @@ def chat():
                 logger.info(f"Attempting to save chat entry - Details:")
                 logger.info(f"Patient ID: {patient_id}")
                 logger.info(f"Message: {message[:50]}...")
-                logger.info(f"Gemini response: {gemini_response[:50]}...")
+                logger.info(f"Primary response: {primary_response[:50]}...")
                 logger.info(f"OpenAI response: {openai_response[:50]}...")
                 
                 # Create the chat history entry
                 chat = ChatHistory(
                     patient_id=patient_id,
                     message=message,
-                    response=gemini_response,
+                    response=primary_response,
                     openai_response=openai_response,
                     message_type='chat',
                     created_at=datetime.utcnow()  # Explicitly set timestamp
@@ -746,7 +748,7 @@ def chat():
                 db.session.rollback()
                 # Do not re-raise the exception to prevent cascading failures
             
-            return jsonify({'response': gemini_response})
+            return jsonify({'response': primary_response})
             
         except Exception as e:
             logger.error(f"Error in chat endpoint: {str(e)}", exc_info=True)
