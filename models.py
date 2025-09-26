@@ -57,8 +57,8 @@ class ChatHistory(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     patient_id = db.Column(db.Integer, db.ForeignKey('patient.id'))
     message = db.Column(db.Text)  # User's message
-    response = db.Column(db.Text)  # Gemini response
-    openai_response = db.Column(db.Text)  # OpenAI response
+    response = db.Column(db.Text)  # Azure OpenAI response (primary for Linux deployment)
+    openai_response = db.Column(db.Text)  # Legacy/alternative response field
     created_at = db.Column(db.DateTime, default=datetime.utcnow)  # Always store in UTC
     message_type = db.Column(db.String(10))  # 'user', 'bot', 'chat', or 'summary'
     feedback = db.Column(db.String(10), default=None)  # 'like', 'dislike', or 'ban'

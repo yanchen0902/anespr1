@@ -175,6 +175,34 @@ python -m unittest --version 2>/dev/null || echo "unittest available (built-in)"
 
 ## Recent Updates
 
+### 2025-09-21: Model Toggle System Enhancement (Git: cca2ec2)
+- **Dual Model Response System**: System now always calls both primary model (Ollama/Gemini) and Azure OpenAI
+  - **Primary Model**: Controlled by `USE_LOCAL_MODEL` environment variable
+  - **Azure OpenAI**: Always called and responses saved to database
+  - **Database Storage**: Both responses stored in `ChatHistory` table (`response` and `openai_response` fields)
+
+- **Model Switching Configuration**:
+  ```env
+  # For Gemini + Azure OpenAI
+  USE_LOCAL_MODEL=False
+
+  # For Ollama + Azure OpenAI
+  USE_LOCAL_MODEL=True
+  ```
+
+- **Important**: No spaces around the `=` sign in `.env` file to avoid parsing issues
+
+- **Code Changes**:
+  - Fixed `USE_LOCAL_MODEL` logic in `app_tocloud.py:29`
+  - Updated chat endpoint to always call Azure OpenAI (`app_tocloud.py:703-707`)
+  - Renamed variables for clarity: `gemini_response` → `primary_response`
+
+**Benefits**:
+- Flexibility to switch between local Ollama and cloud Gemini models
+- Always maintain Azure OpenAI responses for comparison and backup
+- Consistent data collection for model evaluation and improvement
+- Easy environment-based model switching without code changes
+
 ### 2025-01-29: Azure OpenAI Prompt Structure Optimization
 - **Enhanced Prompt Architecture**: Implemented separated system and user prompts for Azure OpenAI integration
   - **System Prompt**: Contains age-appropriate medical guidelines + surgery-specific protocols (Part 1 + Part 3)

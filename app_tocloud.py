@@ -1,7 +1,6 @@
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for, flash
 from datetime import datetime, timedelta
 import json
-import google.generativeai as genai
 import openai
 import os
 import requests
@@ -25,11 +24,6 @@ logger = logging.getLogger(__name__)
 # Load environment variables
 load_dotenv()
 
-# Ollama configuration
-USE_LOCAL_MODEL = os.getenv('USE_LOCAL_MODEL', 'false').lower() == 'true'
-OLLAMA_URL = os.getenv('OLLAMA_URL', 'http://192.168.226.162:11434')
-OLLAMA_MODEL = os.getenv('OLLAMA_MODEL', 'gemma3:latest')
-logger.info(f"Ollama config: USE_LOCAL_MODEL={USE_LOCAL_MODEL}, URL={OLLAMA_URL}, MODEL={OLLAMA_MODEL}")
 
 app = Flask(__name__)
 app.config['JSON_AS_ASCII'] = False  # Ensure proper UTF-8 handling
@@ -335,83 +329,32 @@ def generate_summary(info):
     return summary
 
 
-def get_ollama_response(prompt, model_name=OLLAMA_MODEL, ollama_url=OLLAMA_URL):
-    """Get response from local Ollama server running Gemma model"""
-    try:
-        # Endpoint for Ollama API
-        endpoint = f"{ollama_url}/api/generate"
-        
-        # Prepare the request payload
-        payload = {
-            "model": model_name,
-            "prompt": prompt,
-            "stream": False,
-            "temperature": 0.3,
-            "top_p": 0.95,
-            "top_k": 64,
-            "max_tokens": 8192
-        }
-        
-        logger.info(f"Sending request to Ollama API at {ollama_url} for model: {model_name}")
-        response = requests.post(endpoint, json=payload)
-        
-        # Check if the request was successful
-        if response.status_code == 200:
-            result = response.json()
-            return result.get("response", "")
-        else:
-            logger.error(f"Ollama API error: Status code {response.status_code}, Response: {response.text}")
-            return None
-            
-    except Exception as e:
-        logger.error(f"Error in get_ollama_response: {str(e)}", exc_info=True)
-        return None
 
 
 def get_bot_response(message, patient_info):
-    """Get response from AI model (either Gemini or local Ollama model)"""
+    """Get response from Azure OpenAI model"""
     try:
         # Get patient_id from session
         user_id = patient_info.get('user_id')
         if not user_id:
             logger.error("No user ID provided in patient_info")
             return "抱歉，系統發生錯誤。請重新開始對話。"
-            
+
         patient_id = session.get(f'patient_id_{user_id}')
         if not patient_id:
             logger.error(f"No patient_id found in session for user_id: {user_id}")
             return "抱歉，系統發生錯誤。請重新開始對話。"
-        
-        # Create context for the AI model
-        context = create_context(message, patient_info)
-        
-        # Determine which model to use based on the configuration
-        if USE_LOCAL_MODEL:
-            logger.info(f"Using local Ollama model: {OLLAMA_MODEL}")
-            # Call the Ollama API directly with the context
-            response_text = get_ollama_response(context, model_name=OLLAMA_MODEL, ollama_url=OLLAMA_URL)
-            
-            if response_text:
-                # Format the response
-                formatted_response = format_response(response_text)
-            else:
-                logger.error("Failed to get response from Ollama model")
-                return "抱歉，我現在無法回答您的問題。請稍後再試。"
+
+        # Get response from Azure OpenAI
+        logger.info("Using Azure OpenAI model")
+        response_text = get_openai_response(message, patient_info)
+
+        if response_text and not response_text.startswith("抱歉"):
+            # Return the response with follow-up prompt
+            return f"{response_text}\n\n您還有其他關於麻醉的問題嗎？"
         else:
-            logger.info("Using Google Gemini model")
-            # Get response from Gemini model
-            model = get_gemini_model()
-            response = model.generate_content(context)
-            
-            if response and response.text:
-                # Format the response
-                formatted_response = format_response(response.text)
-            else:
-                logger.error("Failed to get response from Gemini model")
-                return "抱歉，我現在無法回答您的問題。請稍後再試。"
-            
-        # Return the response with follow-up prompt
-        return f"{formatted_response}\n\n您還有其他關於麻醉的問題嗎？"
+            logger.error("Failed to get response from Azure OpenAI model")
+            return "抱歉，我現在無法回答您的問題。請稍後再試。"
 
     except Exception as e:
         logger.error(f"Error in get_bot_response: {str(e)}", exc_info=True)
@@ -464,61 +407,6 @@ def create_context(message, patient_info):
     # Get the appropriate prompt using the prompt templates module
     return get_prompt(message, patient_info)
 
-# Initialize Gemini API
-GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')
-logger.info(f"Using API key from environment: {GOOGLE_API_KEY[:5]}...{GOOGLE_API_KEY[-4:] if GOOGLE_API_KEY else 'None'}")
-
-if not GOOGLE_API_KEY:
-    logger.warning("No API key found in environment variables")
-    raise ValueError("No API key found. Please set GOOGLE_API_KEY in your .env file")
-
-# Model configuration
-generation_config = {
-    "temperature": 1,              # Maximum creativity
-    "top_p": 0.95,                # High diversity in responses
-    "top_k": 40,                  # Top-k sampling parameter
-    "max_output_tokens": 8192,     # Increased maximum response length
-}
-
-# Safety settings
-safety_settings = [
-    {
-        "category": "HARM_CATEGORY_HARASSMENT",
-        "threshold": "BLOCK_MEDIUM_AND_ABOVE"
-    },
-    {
-        "category": "HARM_CATEGORY_HATE_SPEECH",
-        "threshold": "BLOCK_MEDIUM_AND_ABOVE"
-    },
-    {
-        "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-        "threshold": "BLOCK_MEDIUM_AND_ABOVE"
-    },
-]
-
-def get_gemini_model():
-    """Get or initialize the Gemini model"""
-    if not hasattr(get_gemini_model, '_model'):
-        try:
-            genai.configure(api_key=GOOGLE_API_KEY)
-            get_gemini_model._model = genai.GenerativeModel(
-                model_name="gemini-2.0-flash",
-                generation_config=generation_config,
-                safety_settings=safety_settings
-            )
-            logger.info("Gemini model initialized successfully")
-        except Exception as e:
-            logger.error(f"Error initializing Gemini model: {str(e)}")
-            raise
-    return get_gemini_model._model
-
-# Initialize model
-try:
-    model = get_gemini_model()
-    logger.info("Gemini model initialized at startup")
-except Exception as e:
-    logger.error(f"Failed to initialize Gemini model at startup: {str(e)}")
-    model = None
 
 # Initialize Azure OpenAI API
 AZURE_OPENAI_API_KEY = os.getenv('AZURE_OPENAI_API_KEY')
@@ -556,6 +444,23 @@ def get_openai_response(message, patient_info):
         # Use separated prompts for Azure OpenAI
         from prompt_templates import get_separated_prompts
         system_prompt, user_prompt = get_separated_prompts(message, patient_info)
+
+        # Log the exact prompts being sent
+        logger.info("=== AZURE OPENAI SYSTEM PROMPT ===")
+        logger.info(system_prompt)
+        logger.info("=== AZURE OPENAI USER PROMPT ===")
+        logger.info(user_prompt)
+        logger.info("=== SENDING REQUEST TO AZURE OPENAI ===")
+
+        # Also print to console for immediate visibility
+        print("\n" + "="*50)
+        print("SYSTEM PROMPT:")
+        print(system_prompt)
+        print("\n" + "="*50)
+        print("USER PROMPT:")
+        print(user_prompt)
+        print("="*50 + "\n")
+
         logger.info("Sending request to Azure OpenAI...")
         
         response = azure_openai_client.chat.completions.create(
@@ -564,15 +469,37 @@ def get_openai_response(message, patient_info):
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
             ],
-            max_completion_tokens=1000
+            max_completion_tokens=2000
         )
         logger.info("Received response from Azure OpenAI")
-        
-        if not response or not response.choices:
-            logger.error("Empty response from Azure OpenAI")
+
+        # Debug: Log the full response structure
+        logger.info(f"Response object: {response}")
+        logger.info(f"Response type: {type(response)}")
+
+        if not response:
+            logger.error("Response is None")
             return "抱歉，Azure OpenAI 回應為空。"
-            
-        return format_response(response.choices[0].message.content)
+
+        if not hasattr(response, 'choices'):
+            logger.error(f"Response has no 'choices' attribute. Available attributes: {dir(response)}")
+            return "抱歉，Azure OpenAI 回應格式錯誤。"
+
+        if not response.choices:
+            logger.error("Response choices is empty")
+            return "抱歉，Azure OpenAI 回應選項為空。"
+
+        logger.info(f"Response choices count: {len(response.choices)}")
+        logger.info(f"First choice: {response.choices[0]}")
+
+        if not hasattr(response.choices[0], 'message'):
+            logger.error("First choice has no message attribute")
+            return "抱歉，Azure OpenAI 回應訊息格式錯誤。"
+
+        content = response.choices[0].message.content
+        logger.info(f"Response content: {content}")
+
+        return format_response(content)
     except Exception as e:
         logger.error(f"Error getting Azure OpenAI response: {str(e)}", exc_info=True)
         return f"抱歉，Azure OpenAI 回應出現錯誤：{str(e)}"
@@ -700,27 +627,22 @@ def chat():
             # Add user_id to patient_info for chat history
             patient_info['user_id'] = user_id
             
-            # Get response from primary model (Ollama or Gemini based on USE_LOCAL_MODEL)
-            primary_response = get_bot_response(message, patient_info)
-
-            # Always get Azure OpenAI response
-            openai_response = get_openai_response(message, patient_info)
+            # Get response from Azure OpenAI only
+            azure_response = get_bot_response(message, patient_info)
             
-            # Save chat history with both responses - SIMPLIFIED VERSION
+            # Save chat history - SIMPLIFIED VERSION
             try:
                 # Log details before saving
                 logger.info(f"Attempting to save chat entry - Details:")
                 logger.info(f"Patient ID: {patient_id}")
                 logger.info(f"Message: {message[:50]}...")
-                logger.info(f"Primary response: {primary_response[:50]}...")
-                logger.info(f"OpenAI response: {openai_response[:50]}...")
-                
+                logger.info(f"Azure response: {azure_response[:50]}...")
+
                 # Create the chat history entry
                 chat = ChatHistory(
                     patient_id=patient_id,
                     message=message,
-                    response=primary_response,
-                    openai_response=openai_response,
+                    response=azure_response,
                     message_type='chat',
                     created_at=datetime.utcnow()  # Explicitly set timestamp
                 )
@@ -748,7 +670,7 @@ def chat():
                 db.session.rollback()
                 # Do not re-raise the exception to prevent cascading failures
             
-            return jsonify({'response': primary_response})
+            return jsonify({'response': azure_response})
             
         except Exception as e:
             logger.error(f"Error in chat endpoint: {str(e)}", exc_info=True)
