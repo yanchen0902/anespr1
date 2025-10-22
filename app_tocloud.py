@@ -530,6 +530,84 @@ def home():
                            user_id=user_id_to_pass, 
                            server_current_step=current_step_to_pass)
 
+# Mock EMR data - replace with actual API integration later
+def get_patient_by_national_id(national_id):
+    """
+    Mock function to simulate EMR data retrieval by National ID (身分證字號)
+    In production, this will connect to the hospital's EMR system
+    """
+    # Mock patient data - only one patient for testing
+    if national_id.upper() == 'A123456789':
+        return {
+            'national_id': 'A123456789',
+            'patient_id': 'P2025001234',  # Hospital internal patient ID
+            'name': '王小明',
+            'gender': '男',
+            'age': 45,
+            'birth_date': '1979-03-15',
+            'phone': '0912-345-678',
+            'blood_type': 'A型RH+',
+            'surgery_type': '腹腔鏡膽囊切除術',
+            'surgery_date': '2025-10-05',
+            'surgeon': '陳醫師',
+            'ward': '5A病房',
+            'medical_history': '高血壓、糖尿病',
+            'allergies': '無已知藥物過敏',
+            'current_medications': '降血壓藥物、血糖控制藥物'
+        }
+
+    return None
+
+@app.route('/patient_id', methods=['GET', 'POST'])
+def patient_id_input():
+    """
+    National ID (身分證字號) input page for EMR integration
+    """
+    logger.info(f"[patient_id_input] Entry. Method: {request.method}")
+
+    if request.method == 'POST':
+        national_id = request.form.get('patient_id', '').strip().upper()
+        logger.info(f"[patient_id_input] Received national_id: {national_id}")
+
+        # Validate National ID format (Taiwan ID format)
+        if not re.match(r'^[A-Z][1-2][0-9]{8}$', national_id):
+            logger.warning(f"[patient_id_input] Invalid format: {national_id}")
+            return render_template('patient_id_input.html',
+                                 error='身分證字號格式不正確，請重新輸入')
+
+        # Try to get patient data by National ID
+        patient_data = get_patient_by_national_id(national_id)
+        logger.info(f"[patient_id_input] Patient data found: {patient_data is not None}")
+
+        if not patient_data:
+            logger.warning(f"[patient_id_input] No patient found for ID: {national_id}")
+            return render_template('patient_id_input.html',
+                                 error='查無此患者資料，請確認身分證字號是否正確')
+
+        # Store patient data in session
+        session['emr_patient_data'] = patient_data
+        session.modified = True
+        logger.info(f"[patient_id_input] Patient data stored in session")
+
+        # Redirect to patient info display page
+        return redirect(url_for('patient_emr_info'))
+
+    logger.info(f"[patient_id_input] Rendering GET page")
+    return render_template('patient_id_input.html')
+
+@app.route('/patient_info')
+def patient_emr_info():
+    """
+    Display patient information from EMR
+    """
+    patient_data = session.get('emr_patient_data')
+
+    if not patient_data:
+        flash('請先輸入身分證字號查詢患者資料', 'error')
+        return redirect(url_for('patient_id_input'))
+
+    return render_template('patient_emr_info.html', patient_info=patient_data)
+
 @app.route('/reset_session', methods=['POST'])
 def reset_session():
     """API endpoint to reset session and start fresh"""

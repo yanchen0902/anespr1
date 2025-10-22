@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="var(--color-primary-light)">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="HandheldFriendly" content="true">
+    <meta name="format-detection" content="telephone=no">
+    <title>患者身分驗證 - 麻醉諮詢助手</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/apple-touch-icon.png') }}">
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    <style>
+        /* Prevent iOS text size adjust */
+        html {
+            -webkit-text-size-adjust: 100%;
+            -ms-text-size-adjust: 100%;
+            height: 100%;
+        }
+
+        body {
+            min-height: 100%;
+            min-height: calc(var(--vh, 1vh) * 100);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft JhengHei', sans-serif;
+        }
+
+        .container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .id-input-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            max-width: 400px;
+            width: 100%;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .logo {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            color: white;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+            text-align: left;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+            font-size: 16px;
+        }
+
+        .id-input {
+            width: 100%;
+            padding: 15px 20px;
+            border: 2px solid #e1e5e9;
+            border-radius: 12px;
+            font-size: 18px;
+            letter-spacing: 2px;
+            text-align: center;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+            box-sizing: border-box;
+        }
+
+        .id-input:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+            box-shadow: 0 0 20px rgba(102, 126, 234, 0.1);
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+        }
+
+        .submit-btn:active {
+            transform: translateY(0);
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .help-text {
+            margin-top: 20px;
+            font-size: 12px;
+            color: #888;
+            line-height: 1.4;
+        }
+
+        .error-message {
+            background: #fee;
+            color: #c33;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            border-left: 4px solid #c33;
+        }
+
+        /* Improve touch targets for iOS */
+        @supports (-webkit-touch-callout: none) {
+            input, textarea, select, button {
+                font-size: 16px;
+            }
+
+            @media screen and (-webkit-min-device-pixel-ratio: 0) {
+                input, select, textarea {
+                    font-size: 16px !important;
+                }
+            }
+        }
+
+        /* Mobile responsive */
+        @media (max-width: 480px) {
+            .container {
+                padding: 10px;
+            }
+
+            .id-input-card {
+                padding: 30px 20px;
+            }
+
+            h1 {
+                font-size: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="id-input-card">
+            <div class="logo">🏥</div>
+            <h1>患者身分驗證</h1>
+            <p class="subtitle">請輸入您的身分證字號以查看您的基本資料</p>
+
+            {% if error %}
+            <div class="error-message">
+                {{ error }}
+            </div>
+            {% endif %}
+
+            <form method="POST" action="{{ url_for('patient_id_input') }}">
+                <div class="form-group">
+                    <label for="patient_id">身分證字號</label>
+                    <input type="text"
+                           id="patient_id"
+                           name="patient_id"
+                           class="id-input"
+                           placeholder="請輸入身分證字號"
+                           pattern="[A-Za-z][1-2][0-9]{8}"
+                           maxlength="10"
+                           required
+                           value="{{ request.form.patient_id or '' }}"
+                           autocomplete="off">
+                </div>
+
+                <button type="submit" class="submit-btn">
+                    查詢患者資料
+                </button>
+            </form>
+
+            <div class="help-text">
+                請確保您輸入的身分證字號正確<br>
+                格式：第一碼為英文字母，第二碼為1或2，後續8碼為數字
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Set CSS custom property for viewport height (for mobile)
+        function setVH() {
+            let vh = window.innerHeight * 0.01;
+            document.documentElement.style.setProperty('--vh', `${vh}px`);
+        }
+
+        setVH();
+        window.addEventListener('resize', setVH);
+
+        // Format ID input
+        document.getElementById('patient_id').addEventListener('input', function(e) {
+            let value = e.target.value.replace(/[^A-Za-z0-9]/g, '');
+            if (value.length > 0) {
+                value = value.charAt(0).toUpperCase() + value.slice(1);
+            }
+            e.target.value = value;
+        });
+
+        // Form validation
+        document.querySelector('form').addEventListener('submit', function(e) {
+            const input = document.getElementById('patient_id');
+            const value = input.value.trim();
+
+            if (!value) {
+                e.preventDefault();
+                alert('請輸入身分證字號');
+                return;
+            }
+
+            if (!/^[A-Za-z][1-2][0-9]{8}$/.test(value)) {
+                e.preventDefault();
+                alert('身分證字號格式不正確，請重新輸入');
+                return;
+            }
+        });
+    </script>
+</body>
+</html>
