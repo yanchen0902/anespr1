@@ -12,10 +12,6 @@
             font-family: 'Inter', sans-serif;
             background-color: #f3f4f6;
         }
-        .text-evan { color: #2C6F45; }
-        .bg-evan { background-color: #2C6F45; }
-        .border-evan { border-color: #2C6F45; }
-        .card-header-evan { background-color: #4CAF50; }
         /* Style for the button icons */
         .pat-edit-btn {
             background-color: transparent;
@@ -31,19 +27,13 @@
 <body class="p-4 sm:p-6 lg:p-8">
 
     <!-- Top header section -->
-    <div class="flex justify-between items-end mb-6 pb-2 border-b border-gray-300">
-        <!-- Left side: Logo and Name -->
-        <div class="flex items-center space-x-2">
-            <img src="https://placehold.co/40x40/4CAF50/FFFFFF?text=EVAN" alt="EVAN logo" class="w-10 h-10 rounded-full">
-            <span class="text-xl font-bold text-gray-700">EVAN</span>
-        </div>
-
-        <!-- Right side: File Info -->
+    <div class="flex justify-end items-end mb-6 pb-2 border-b border-gray-300">
+        <!-- File Info -->
         <div id="Div_File_Info" class="text-right text-gray-500 text-xs sm:text-sm">
             <h4>
                 <span id="Span_Version" class="mr-2 text-green-600 font-semibold">v1.0.0</span>
-                <span id="Span_CompleteEmpName" class="mr-2">Dr. Chen</span>
-                <span id="Span_CompleteDateTime">2023/10/27 15:30</span>
+                <span id="Span_CompleteEmpName" class="mr-2">YAChen</span>
+                <span id="Span_CompleteDateTime">2025/10/22</span>
             </h4>
         </div>
     </div>
@@ -68,33 +58,33 @@
                     <!-- Form Row -->
                     <div class="flex items-center">
                         <span class="font-medium text-gray-600 w-24 flex-shrink-0">姓名 :</span>
-                        <span id="PatName" class="text-gray-800">王大明</span>
+                        <span id="PatName" class="text-gray-800">{{ emr_data.patient_demographics.patient_name }}</span>
                     </div>
                     <div class="flex items-center">
                         <span class="font-medium text-gray-600 w-24 flex-shrink-0">性別 :</span>
-                        <span id="PatGender" class="text-gray-800">男</span>
+                        <span id="PatGender" class="text-gray-800">{{ emr_data.patient_demographics.gender }}</span>
                     </div>
                     <div class="flex items-center">
                         <span class="font-medium text-gray-600 w-24 flex-shrink-0">年齡 :</span>
-                        <span id="PatAge" class="text-gray-800">45</span>
+                        <span id="PatAge" class="text-gray-800">{{ emr_data.patient_demographics.age }}</span>
                     </div>
                     <div class="flex items-center">
                         <span class="font-medium text-gray-600 w-24 flex-shrink-0">出生日期 :</span>
-                        <span id="PatDOB" class="text-gray-800">1978/05/20</span>
+                        <span id="PatDOB" class="text-gray-800">{{ emr_data.patient_demographics.date_of_birth }}</span>
                     </div>
                     <div class="flex items-center">
                         <span class="font-medium text-gray-600 w-24 flex-shrink-0">血型 :</span>
-                        <span id="PatBloodType" class="text-gray-800">O+</span>
+                        <span id="PatBloodType" class="text-gray-800">{{ emr_data.patient_demographics.blood_type }}</span>
                     </div>
                     <!-- Added '身份證字號' -->
                     <div class="flex items-center">
                         <span class="font-medium text-gray-600 w-24 flex-shrink-0">身份證字號 :</span>
-                        <span id="PatIDNumber" class="text-gray-800">A123456789</span>
+                        <span id="PatIDNumber" class="text-gray-800">{{ emr_data.patient_demographics.id_number }}</span>
                     </div>
                     <!-- Added '病歷號' -->
                     <div class="flex items-center">
                         <span class="font-medium text-gray-600 w-24 flex-shrink-0">病歷號 :</span>
-                        <span id="PatMedRecNumber" class="text-gray-800">M1234567</span>
+                        <span id="PatMedRecNumber" class="text-gray-800">{{ emr_data.patient_demographics.medical_record_number }}</span>
                     </div>
                 </div>
             </div>
@@ -116,23 +106,23 @@
                 <div class="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-y-4 gap-x-6">
                     <!-- Scheduled Surgery Date -->
                     <div class="flex items-center">
-                        <span class="font-medium text-gray-600 w-24 flex-shrink-0">預定手術日期 :</span>
-                        <span id="OperationStrDate" class="text-gray-800">2023/11/15</span>
+                        <span class="font-medium text-gray-600 w-24 flex-shrink-0">手術日期 :</span>
+                        <span id="OperationStrDate" class="text-gray-800">{{ emr_data.surgery_info.surgery_date }}</span>
                     </div>
                     <!-- Attending Surgeon -->
                     <div class="flex items-center">
-                        <span class="font-medium text-gray-600 w-24 flex-shrink-0">手術主治醫師 :</span>
-                        <span id="OperationDoctorName" class="text-gray-800">陳醫師</span>
+                        <span class="font-medium text-gray-600 w-24 flex-shrink-0">主治醫師 :</span>
+                        <span id="OperationDoctorName" class="text-gray-800">{{ emr_data.surgery_info.attending_surgeon }}</span>
                     </div>
                     <!-- Expected Surgery Name -->
                     <div class="flex items-center">
-                        <span class="font-medium text-gray-600 w-24 flex-shrink-0">預計手術名稱 :</span>
-                        <span id="txt_PreOPMethod" class="text-gray-800">闌尾切除術</span>
+                        <span class="font-medium text-gray-600 w-24 flex-shrink-0">手術名稱 :</span>
+                        <span id="txt_PreOPMethod" class="text-gray-800">{{ emr_data.surgery_info.surgery_name }}</span>
                     </div>
                      <!-- Pre-op Diagnosis -->
                     <div class="flex items-center">
                         <span class="font-medium text-gray-600 w-24 flex-shrink-0">術前診斷 :</span>
-                        <span id="txt_PreDiagnosis" class="text-gray-800">急性闌尾炎</span>
+                        <span id="txt_PreDiagnosis" class="text-gray-800">{{ emr_data.surgery_info.preop_diagnosis }}</span>
                     </div>
                 </div>
             </div>
@@ -156,7 +146,7 @@
                     <div class="flex items-center space-x-0.5">
                         <span class="font-medium text-gray-600 w-16 flex-shrink-0">身高 :</span>
                         <div class="relative flex items-center flex-grow">
-                            <input type="text" id="PatHeight" value="175 cm" class="bg-gray-100 p-2 pr-8 rounded-md w-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500" readonly>
+                            <input type="text" id="PatHeight" value="{{ emr_data.vital_signs.height }}" class="bg-gray-100 p-2 pr-8 rounded-md w-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500" readonly>
                             <button id="EditPatHeight" class="pat-edit-btn absolute right-2 text-gray-500 hover:text-green-600 focus:outline-none">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                                   <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
@@ -168,7 +158,7 @@
                     <div class="flex items-center space-x-0.5">
                         <span class="font-medium text-gray-600 w-16 flex-shrink-0">體重 :</span>
                         <div class="relative flex items-center flex-grow">
-                            <input type="text" id="PatWeight" value="70 kg" class="bg-gray-100 p-2 pr-8 rounded-md w-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500" readonly>
+                            <input type="text" id="PatWeight" value="{{ emr_data.vital_signs.weight }}" class="bg-gray-100 p-2 pr-8 rounded-md w-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500" readonly>
                             <button id="EditPatWeight" class="pat-edit-btn absolute right-2 text-gray-500 hover:text-green-600 focus:outline-none">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                                   <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
@@ -179,13 +169,13 @@
                     <!-- BMI -->
                     <div class="flex items-center">
                         <span class="font-medium text-gray-600 w-24 flex-shrink-0">BMI :</span>
-                        <span id="PatBMI" class="text-gray-800">22.86</span>
+                        <span id="PatBMI" class="text-gray-800">{{ emr_data.vital_signs.bmi }}</span>
                     </div>
                     <!-- Temperature -->
                     <div class="flex items-center space-x-0.5">
                         <span class="font-medium text-gray-600 w-16 flex-shrink-0">體溫 :</span>
                         <div class="relative flex items-center flex-grow">
-                            <input type="text" id="PatTemperature" value="36.5 °C" class="bg-gray-100 p-2 pr-8 rounded-md w-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500" readonly>
+                            <input type="text" id="PatTemperature" value="{{ emr_data.vital_signs.temperature }}" class="bg-gray-100 p-2 pr-8 rounded-md w-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500" readonly>
                             <button id="EditPatTemperature" class="pat-edit-btn absolute right-2 text-gray-500 hover:text-green-600 focus:outline-none">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                                   <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
@@ -197,7 +187,7 @@
                     <div class="flex items-center space-x-0.5">
                         <span class="font-medium text-gray-600 w-16 flex-shrink-0">心跳 :</span>
                         <div class="relative flex items-center flex-grow">
-                            <input type="text" id="PatHeartBeat" value="72 bpm" class="bg-gray-100 p-2 pr-8 rounded-md w-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500" readonly>
+                            <input type="text" id="PatHeartBeat" value="{{ emr_data.vital_signs.heart_rate }}" class="bg-gray-100 p-2 pr-8 rounded-md w-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500" readonly>
                             <button id="EditPatHeartBeat" class="pat-edit-btn absolute right-2 text-gray-500 hover:text-green-600 focus:outline-none">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                                   <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
@@ -209,7 +199,7 @@
                     <div class="flex items-center space-x-0.5">
                         <span class="font-medium text-gray-600 w-16 flex-shrink-0">血壓 :</span>
                         <div class="relative flex items-center flex-grow">
-                            <input type="text" id="PatBloodPressure" value="120/80 mmHg" class="bg-gray-100 p-2 pr-8 rounded-md w-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500" readonly>
+                            <input type="text" id="PatBloodPressure" value="{{ emr_data.vital_signs.blood_pressure }}" class="bg-gray-100 p-2 pr-8 rounded-md w-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500" readonly>
                             <button id="EditPatBloodPressure" class="pat-edit-btn absolute right-2 text-gray-500 hover:text-green-600 focus:outline-none">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                                   <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
@@ -221,7 +211,7 @@
                      <div class="flex items-center space-x-0.5">
                         <span class="font-medium text-gray-600 w-16 flex-shrink-0">呼吸 :</span>
                         <div class="relative flex items-center flex-grow">
-                            <input type="text" id="PatBreathe" value="16 bpm" class="bg-gray-100 p-2 pr-8 rounded-md w-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500" readonly>
+                            <input type="text" id="PatBreathe" value="{{ emr_data.vital_signs.respiratory_rate }}" class="bg-gray-100 p-2 pr-8 rounded-md w-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500" readonly>
                             <button id="EditPatBreathe" class="pat-edit-btn absolute right-2 text-gray-500 hover:text-green-600 focus:outline-none">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                                   <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
@@ -231,6 +221,19 @@
                     </div>
                 </div>
             </div>
+        </div>
+
+        <!-- Confirmation Button -->
+        <div class="mt-8 text-center">
+            <form method="POST" action="{{ url_for('confirm_emr_data') }}">
+                <button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-8 rounded-lg shadow-lg transition-all duration-200 transform hover:scale-105">
+                    確認資料並開始諮詢 (Confirm & Start Consultation)
+                </button>
+            </form>
+            <p class="mt-4 text-sm text-gray-500">
+                請確認以上資料無誤後，點擊按鈕開始麻醉諮詢<br>
+                Please confirm the information above before starting the consultation
+            </p>
         </div>
 
     </div>

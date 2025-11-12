@@ -423,12 +423,13 @@ else:
     logger.info(f"Azure OpenAI deployment: {AZURE_OPENAI_DEPLOYMENT_NAME}")
     
     try:
-        from openai import AzureOpenAI
-        azure_openai_client = AzureOpenAI(
-            api_key=AZURE_OPENAI_API_KEY,
-            api_version=AZURE_OPENAI_API_VERSION,
-            azure_endpoint=AZURE_OPENAI_ENDPOINT
-        )
+          # 使用 openai 套件的 global 配置
+        openai.api_type = "azure"
+        openai.api_key = AZURE_OPENAI_API_KEY
+        openai.api_base = AZURE_OPENAI_ENDPOINT
+        openai.api_version = AZURE_OPENAI_API_VERSION
+        
+        azure_openai_client = openai  # 直接使用 openai 套件呼叫
         logger.info("Azure OpenAI client initialized successfully")
     except Exception as e:
         logger.error(f"Failed to initialize Azure OpenAI client: {str(e)}")

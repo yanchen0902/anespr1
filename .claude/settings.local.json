@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python form_ocr_azure.py:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

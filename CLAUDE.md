@@ -175,6 +175,48 @@ python -m unittest --version 2>/dev/null || echo "unittest available (built-in)"
 
 ## Recent Updates
 
+### 2025-10-22: Linux Deployment Preparation (Git: c2af0af)
+- **Documentation Overhaul**: Complete rewrite of project documentation for Linux deployment handoff
+  - **README.md**: Comprehensive bilingual (Chinese/English) documentation
+    - Clear file categorization: Linux Essential vs Optional vs Google Cloud only
+    - Step-by-step Linux deployment guide with systemd service example
+    - Environment configuration with `.env.linux` template
+    - FAQ section covering common deployment issues
+    - Security considerations and best practices
+  - **migrations/README.md**: Database migration documentation
+    - Detailed guide for each migration script
+    - Clear distinction: fresh install vs upgrading existing database
+    - Safety features and troubleshooting
+
+- **File Cleanup**: Removed redundant files for cleaner codebase
+  - Deleted `templates/admin.html` (duplicate of `admin_dashboard.html`)
+  - Deleted `add_feedback_columns.py` (duplicate of `migrations/add_feedback_fields.py`)
+
+- **Deployment Clarity**: Key distinctions for Linux engineers
+  - ✅ Use `init_db.py` for fresh installation (NOT migrations folder)
+  - ✅ Use `create_admin.py` for Linux (NOT `create_admin_cloud.py`)
+  - ❌ Ignore Google Cloud files: `app.yaml`, `setup_mysql.py`, `.gcloudignore`
+  - ⚠️ `migrations/` folder only needed for upgrading existing databases
+
+- **Quick Start Guide**: 5-step deployment process
+  ```bash
+  python3 -m venv venv && source venv/bin/activate
+  pip install -r requirements.linux.txt
+  cp .env.linux .env  # Fill in API keys
+  python3 init_db.py
+  python3 create_admin.py
+  gunicorn -w 4 -b 0.0.0.0:8080 app_tocloud:app
+  ```
+
+**Benefits**:
+- Clear separation of Linux vs Google Cloud deployment paths
+- Reduced confusion with redundant files removed
+- Engineer-friendly documentation with step-by-step instructions
+- Production-ready with systemd service configuration
+- No ambiguity about which scripts to run for fresh installation
+
+---
+
 ### 2025-09-21: Model Toggle System Enhancement (Git: cca2ec2)
 - **Dual Model Response System**: System now always calls both primary model (Ollama/Gemini) and Azure OpenAI
   - **Primary Model**: Controlled by `USE_LOCAL_MODEL` environment variable
@@ -221,8 +263,154 @@ python -m unittest --version 2>/dev/null || echo "unittest available (built-in)"
 - Maintains compatibility with existing Gemini/Ollama implementations
 - Centralized prompt logic in `prompt_templates.py` module
 
+---
+
+### 2025-10-22: EMR Integration Placeholder Structure (Future Feature)
+- **EMR Integration Framework**: Complete placeholder structure for future hospital EMR system integration
+  - **Patient Access**: National ID (身份證字號) lookup instead of QR code
+  - **Data Flow**: ID entry → EMR data fetch → Patient confirmation → Chatbot consultation (starts at CFS)
+  - **Hybrid Storage**: EMR data saved as JSON snapshot in `ChatHistory` (no schema changes needed)
+
+- **New Files Created**:
+  - **`emr_schema.py`**: Standardized JSON schema for EMR snapshots
+    - Complete data structure: patient demographics, surgery info, vital signs, medical history
+    - Validation functions and example data
+    - Version: 1.0.0
+
+  - **`emr_integration.py`**: EMR API integration module
+    - `fetch_patient_from_emr(id_number, use_mock=True)`: Main entry point
+    - Mock data implementation (currently active)
+    - Placeholder for real EMR API integration
+    - Error handling: `PatientNotFoundError`, `EMRAPIError`
+    - Data transformation layer ready for hospital API mapping
+
+  - **`EMR_INTEGRATION_GUIDE.md`**: Comprehensive implementation documentation
+    - Patient flow diagrams
+    - Step-by-step integration guide
+    - Security considerations
+    - Questions for hospital IT department
+
+- **Modified Files**:
+  - **`models.py`**: ChatHistory model updated
+    - `message_type` expanded from `String(10)` to `String(20)`
+    - Added 'emr_snapshot' as valid message type
+    - **Fresh installations**: `init_db.py` creates correct schema automatically
+    - **Existing databases**: Run `migrations/expand_message_type_for_emr.py` if upgrading
+
+  - **`templates/patient_emr_info.html`**: Dynamic EMR data display
+    - Removed EVAN branding
+    - Full Jinja2 template integration for all fields
+    - Editable vital signs fields with pencil icons
+    - Confirmation button added: "確認資料並開始諮詢"
+
+  - **`app_tocloud.py`**: New routes and session flow
+    - `/patient_id` (existing): National ID lookup form
+    - `/patient_info` (modified): Display EMR data with transformation layer
+    - `/confirm_emr_data` (new): Save EMR snapshot and create Patient record
+    - Session flow: Skips basic questions, starts at CFS step
+    - Home route modified: Preserves session when coming from EMR confirmation
+
+- **EMR Snapshot Structure** (stored in ChatHistory.message as JSON):
+```json
+{
+  "schema_version": "1.0.0",
+  "source": "hospital_emr",
+  "fetched_at": "ISO datetime",
+  "confirmed_at": "ISO datetime",
+  "confirmed_by_patient": true,
+  "patient_demographics": {
+    "medical_record_number": "M1234567",
+    "id_number": "A123456789",
+    "patient_name": "王大明",
+    "date_of_birth": "1978/05/20",
+    "age": 45,
+    "gender": "男",
+    "blood_type": "O+"
+  },
+  "surgery_info": {
+    "surgery_date": "2023/11/15",
+    "surgery_time": "08:00",
+    "surgery_name": "闌尾切除術",
+    "attending_surgeon": "陳醫師",
+    "department": "一般外科",
+    "preop_diagnosis": "急性闌尾炎",
+    "anesthesia_type": "全身麻醉"
+  },
+  "vital_signs": {
+    "height": "175 cm",
+    "weight": "70 kg",
+    "bmi": "22.86",
+    "temperature": "36.5 °C",
+    "heart_rate": "72 bpm",
+    "blood_pressure": "120/80 mmHg",
+    "respiratory_rate": "16 bpm",
+    "spo2": "98%"
+  },
+  "medical_history": {
+    "allergies": ["青黴素"],
+    "medications": ["降血壓藥"],
+    "past_surgeries": [],
+    "chronic_conditions": ["高血壓"],
+    "notes": ""
+  }
+}
+```
+
+- **Patient Flow** (Complete):
+```
+1. Patient visits /patient_id
+   ↓
+2. Enters National ID: A123456789
+   ↓
+3. System fetches EMR data (currently mock, will be real API)
+   ↓
+4. Display patient_emr_info.html with all data
+   ↓
+5. Patient reviews and clicks confirmation button
+   ↓
+6. Creates Patient record in database
+   ↓
+7. Saves EMR snapshot to ChatHistory (message_type='emr_snapshot')
+   ↓
+8. Sets session: current_step='cfs' (skips name/age/sex/operation)
+   ↓
+9. Redirects to chatbot starting at CFS question
+```
+
+- **Testing** (Mock Data Available):
+  - Visit: `http://localhost:8080/patient_id`
+  - Enter National ID: `A123456789`
+  - Mock patient "王小明" data will be displayed
+  - Click confirmation to test full flow
+
+- **Environment Variables** (for future real EMR integration):
+```env
+EMR_API_URL=https://hospital-emr.example.com/api
+EMR_API_KEY=your_api_key_here
+EMR_API_TIMEOUT=30
+```
+
+- **Switching to Real EMR API**:
+  1. Configure environment variables
+  2. Implement `_fetch_real_patient_data()` in `emr_integration.py`
+  3. Implement `_transform_emr_data()` to map hospital EMR fields
+  4. Change `use_mock=True` to `use_mock=False`
+
+**Benefits**:
+- ✅ No database schema changes needed (uses existing ChatHistory table)
+- ✅ Complete audit trail via EMR snapshot JSON
+- ✅ Easy to switch between mock and real EMR API
+- ✅ Skips redundant questions (name, age, gender, surgery)
+- ✅ Full EMR data available for AI prompts (future enhancement)
+- ✅ Professional patient experience with pre-filled data
+- ✅ Maintains separation between core patient data and EMR snapshots
+
+**Status**: Placeholder structure complete and functional with mock data
+**Next Steps**: Pending real hospital EMR API integration
+
+---
+
 ## Contact & Support
 - System designed for medical professionals
 - Requires medical domain expertise for prompt updates
 - Healthcare compliance considerations apply
-- This is the future plan
