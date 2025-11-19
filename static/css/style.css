@@ -99,7 +99,7 @@ body {
     margin-top: auto;
 }
 
-/* Sidebar toggle button for mobile */
+/* Sidebar toggle button for mobile and tablet */
 .sidebar-toggle {
     display: none;
     position: fixed;
@@ -109,10 +109,21 @@ body {
     background-color: var(--color-primary);
     color: white;
     border: none;
-    border-radius: 5px;
+    border-radius: 8px;
     padding: 8px;
     cursor: pointer;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+    transition: all 0.3s ease;
+}
+
+.sidebar-toggle:hover {
+    background-color: var(--color-primary-dark);
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+.sidebar-toggle:active {
+    transform: scale(0.95);
 }
 
 /* Header adjustments */
@@ -166,14 +177,80 @@ h1 {
         margin-bottom: 5px;
         padding: 5px 0;
     }
-    
+
     h1 {
-        font-size: 1.3em;
+        font-size: 1.5em;
         margin-bottom: 0;
     }
-    
+
     .subtitle {
         display: none; /* Hide subtitle on iPad */
+    }
+}
+
+/* Comprehensive tablet font sizing - iPad, iPad Pro, Android tablets */
+/* ELDERLY-FRIENDLY - Large font sizes for better readability */
+@media (min-width: 768px) and (max-width: 1024px) {
+    /* Base text size increase - DOUBLED for elderly users */
+    body {
+        font-size: 22px;
+    }
+
+    /* Header and titles - LARGER */
+    h1 {
+        font-size: 2.2em;
+    }
+
+    h2 {
+        font-size: 1.9em;
+    }
+
+    h3 {
+        font-size: 1.6em;
+    }
+
+    /* Chat messages - MOST IMPORTANT - DOUBLED SIZE */
+    .message {
+        font-size: 26px !important;
+        line-height: 1.7;
+        padding: 16px 20px;
+    }
+
+    /* Input field - LARGER */
+    .text-input-area input {
+        font-size: 24px;
+        padding: 16px 20px;
+    }
+
+    /* Sidebar info buttons - LARGER */
+    .info-button {
+        font-size: 20px;
+        padding: 14px 18px;
+    }
+
+    .info-button .emoji {
+        font-size: 24px;
+    }
+
+    /* Voice controls - LARGER touch targets */
+    .voice-button {
+        width: 48px;
+        height: 48px;
+    }
+
+    .voice-button svg {
+        width: 26px;
+        height: 26px;
+    }
+
+    /* Sidebar header */
+    .sidebar-header h3 {
+        font-size: 1.4em;
+    }
+
+    /* Send button text */
+    .send-button {
+        font-size: 22px;
     }
 }
 
@@ -269,12 +346,16 @@ button, .button, .option-button {
 /* Ensure consistent display on iPad */
 @media (max-width: 1024px) {
     .button-group {
-        gap: 8px;
+        gap: 10px;
     }
-    
+
     .option-button {
-        padding: 10px 14px;
-        font-size: 14px;
+        padding: 14px 20px;
+        font-size: 24px;
+    }
+
+    .option-button .emoji {
+        font-size: 1.5em;
     }
 }
 
@@ -320,20 +401,12 @@ button, .button, .option-button {
     .send-button {
         padding: 12px 15px;
         min-width: 60px;
+        font-size: 18px;
     }
 }
 
-/* Sidebar adjustments */
-.info-sidebar {
-    order: -1;
-    margin-bottom: 15px;
-    width: 100%;
-    max-height: 200px;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    border-bottom: 1px solid #eee;
-    padding-bottom: 15px;
-}
+/* Sidebar adjustments - REMOVED to prevent conflicts with tablet collapsible sidebar */
+/* This was causing max-height: 200px limitation at 1002px width */
 
 .info-links {
     display: flex;
@@ -427,20 +500,53 @@ button, .button, .option-button {
     }
 }
 
-/* Adjust for iPad Mini in portrait */
-@media (max-height: 1024px) and (orientation: portrait) {
-    .chat-container {
+/* Adjust for iPad in portrait mode - including iPad Air (1002x1019) */
+/* Use collapsible sidebar to maximize chat space */
+@media (max-width: 1024px) and (min-width: 768px) and (orientation: portrait) {
+    .container {
+        flex-direction: row;
         padding: 10px;
     }
-    
-    #chat-messages {
-        padding: 5px 0;
+
+    /* Start collapsed to maximize chat space */
+    .info-sidebar {
+        width: 0;
+        padding: 0;
+        overflow: hidden;
+        transition: width 0.3s ease, padding 0.3s ease;
+        min-height: 100vh;  /* Full height */
+        max-height: 100vh;  /* Prevent overflow beyond viewport */
     }
-    
+
+    .info-sidebar.active {
+        width: 280px;
+        padding: 15px;
+        margin-right: 10px;
+        overflow-y: auto;  /* Enable vertical scrolling when expanded */
+        -webkit-overflow-scrolling: touch;  /* Smooth scrolling */
+    }
+
+    .chat-container {
+        padding: 12px;
+        flex: 1;
+    }
+
+    #chat-messages {
+        padding: 8px 0;
+    }
+
     .message {
-        max-width: 90%;
-        padding: 10px 14px;
-        font-size: 17px; /* Slightly smaller than desktop but still larger than before */
+        max-width: 85%;
+        padding: 16px 20px;
+        font-size: 26px;
+        line-height: 1.7;
+    }
+
+    /* Show toggle button */
+    .sidebar-toggle {
+        display: block !important;
+        width: 48px;
+        height: 48px;
     }
 }
 
@@ -707,11 +813,13 @@ button, .button, .option-button {
 }
 
 .info-sidebar {
-    position: relative;  /* Add this to make it a positioning context */
-    height: 100%;
+    position: relative;  /* Positioning context for fixed-bottom-button */
+    min-height: 100%;  /* Changed from height: 100% to allow overflow */
     display: flex;
     flex-direction: column;
-    padding-bottom: 80px;  /* Add padding to make room for the button */
+    padding-bottom: 80px;  /* Padding for the self-pay button */
+    overflow-y: auto;  /* Allow scrolling if content is too tall */
+    -webkit-overflow-scrolling: touch;  /* Smooth scrolling on iOS */
 }
 
 .sidebar-header {
@@ -1075,23 +1183,8 @@ button, .button, .option-button {
     color: var(--color-text-main);
 }
 
-/* Default width for PC */
-.info-sidebar {
-    width: 250px;
-    padding: 20px;
-    background-color: white;
-    border-right: 1px solid var(--color-button-default);
-    box-sizing: border-box;
-    transition: width 0.3s ease;
-}
-
-/* For iPad and tablets */
-@media (max-width: 1024px) and (min-width: 768px) {
-    .info-sidebar {
-        width: 200px;
-        padding: 15px;
-    }
-}
+/* REMOVED: Duplicate sidebar rules that conflicted with collapsible sidebar at 1002px */
+/* These rules were overriding the width settings and causing display issues */
 
 .info-links {
     display: flex;
@@ -1678,20 +1771,68 @@ button:disabled {
     position: relative;
 }
 
-/* Media queries for responsive layout */
-@media (max-width: 1024px) {
+/* Media queries for responsive layout - COLLAPSIBLE SIDEBAR ON TABLET */
+@media (max-width: 1024px) and (min-width: 769px) {
     .container {
-        padding: 5px;
+        padding: 10px;
+        flex-direction: row;
     }
-    
+
+    /* Collapsible sidebar for tablets */
     .info-sidebar {
-        width: 220px;
-        padding: 12px;
+        width: 0;
+        min-width: 0;
+        padding: 0;
+        overflow: hidden;
+        transition: width 0.3s ease, padding 0.3s ease;
+        margin-right: 0;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;  /* Full height */
+        max-height: 100vh;  /* Prevent overflow beyond viewport */
     }
-    
+
+    .info-sidebar.active {
+        width: 280px;
+        padding: 15px;
+        margin-right: 10px;
+        overflow-y: auto;  /* Enable vertical scrolling when expanded */
+        -webkit-overflow-scrolling: touch;  /* Smooth scrolling on touch devices */
+    }
+
+    /* Show toggle button on tablet */
+    .sidebar-toggle {
+        display: block !important;
+        position: fixed;
+        top: 12px;
+        left: 12px;
+        z-index: 100;
+        width: 48px;
+        height: 48px;
+        padding: 12px;
+        background-color: var(--color-primary);
+    }
+
+    .sidebar-toggle svg {
+        width: 24px;
+        height: 24px;
+    }
+
+    /* No overlay on tablet - sidebar pushes content */
+    .sidebar-overlay {
+        display: none !important;
+    }
+
     header {
-        margin-bottom: 5px;
-        padding: 5px 0;
+        margin-bottom: 8px;
+        padding: 8px 0;
+    }
+
+    /* Chat container takes full width when sidebar collapsed */
+    .chat-container {
+        flex: 1;
+        transition: margin-left 0.3s ease;
     }
 }
 

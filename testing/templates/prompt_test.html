@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>麻醉諮詢聊天機器人 - Prompt 測試介面</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 20px;
+            height: calc(100vh - 40px);
+        }
+
+        .panel {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .panel-content {
+            padding: 20px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        /* Left Panel - Patient Selection */
+        .patient-selector {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .template-card {
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .template-card:hover {
+            border-color: #667eea;
+            background: #f8f9ff;
+            transform: translateY(-2px);
+        }
+
+        .template-card.active {
+            border-color: #667eea;
+            background: #f0f2ff;
+        }
+
+        .template-card h3 {
+            color: #333;
+            margin-bottom: 8px;
+            font-size: 16px;
+        }
+
+        .template-card p {
+            color: #666;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .current-patient {
+            background: #f0f2ff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .current-patient h4 {
+            color: #667eea;
+            margin-bottom: 8px;
+        }
+
+        .current-patient p {
+            color: #333;
+            font-size: 13px;
+            margin: 5px 0;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+        }
+
+        .btn-secondary {
+            background: #e0e0e0;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #d0d0d0;
+        }
+
+        /* Right Panel - Chat Interface */
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .message {
+            display: flex;
+            gap: 10px;
+            max-width: 80%;
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.user {
+            align-self: flex-end;
+            flex-direction: row-reverse;
+        }
+
+        .message-bubble {
+            padding: 12px 18px;
+            border-radius: 12px;
+            line-height: 1.5;
+        }
+
+        .message.user .message-bubble {
+            background: #667eea;
+            color: white;
+        }
+
+        .message.bot .message-bubble {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .message-label {
+            font-size: 11px;
+            color: #999;
+            margin-bottom: 5px;
+        }
+
+        .chat-input-area {
+            border-top: 1px solid #e0e0e0;
+            padding: 20px;
+            background: #fafafa;
+        }
+
+        .chat-input-form {
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            resize: none;
+            font-family: inherit;
+        }
+
+        .chat-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .response-info {
+            margin-top: 10px;
+            padding: 10px;
+            background: #fff9e6;
+            border-left: 3px solid #ffc107;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .response-info details {
+            margin-top: 5px;
+        }
+
+        .response-info summary {
+            cursor: pointer;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .response-info pre {
+            background: white;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            margin-top: 5px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .loading {
+            display: none;
+            align-items: center;
+            gap: 10px;
+            color: #666;
+        }
+
+        .loading.active {
+            display: flex;
+        }
+
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f0f0f0;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #999;
+            padding: 40px;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Left Panel: Patient Selection -->
+        <div class="panel">
+            <div class="panel-header">
+                模板病患選擇
+            </div>
+            <div class="panel-content">
+                <div id="currentPatient" class="current-patient" style="display: none;">
+                    <h4>當前病患</h4>
+                    <p><strong>姓名：</strong><span id="patientName"></span></p>
+                    <p><strong>年齡：</strong><span id="patientAge"></span> 歲</p>
+                    <p><strong>性別：</strong><span id="patientGender"></span></p>
+                    <p><strong>手術：</strong><span id="patientOperation"></span></p>
+                    <p><strong>CFS：</strong><span id="patientCFS"></span> 分</p>
+                    <div class="action-buttons">
+                        <button class="btn btn-secondary" onclick="clearChat()">清除對話</button>
+                        <button class="btn btn-secondary" onclick="resetAll()">重新選擇</button>
+                    </div>
+                </div>
+
+                <div class="patient-selector">
+                    {% for template_id, patient in templates.items() %}
+                    <div class="template-card" onclick="selectPatient(event, '{{ template_id }}')">
+                        <h3>{{ patient.name }}</h3>
+                        <p>{{ patient.description }}</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Panel: Chat Interface -->
+        <div class="panel">
+            <div class="panel-header">
+                麻醉諮詢對話 - Prompt 測試
+            </div>
+            <div class="chat-container">
+                <div class="chat-messages" id="chatMessages">
+                    <div class="empty-state">
+                        請先從左側選擇一個模板病患開始測試
+                    </div>
+                </div>
+
+                <div class="chat-input-area">
+                    <div class="loading" id="loadingIndicator">
+                        <div class="spinner"></div>
+                        <span>AI 思考中...</span>
+                    </div>
+                    <form class="chat-input-form" onsubmit="sendMessage(event)">
+                        <textarea
+                            class="chat-input"
+                            id="messageInput"
+                            placeholder="輸入您的問題..."
+                            rows="2"
+                            disabled
+                        ></textarea>
+                        <button type="submit" class="btn btn-primary" id="sendButton" disabled>
+                            發送
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentPatient = null;
+
+        async function selectPatient(event, templateId) {
+            try {
+                const response = await fetch('/select_patient', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ template_id: templateId })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    currentPatient = data.patient;
+                    updateCurrentPatientDisplay();
+                    clearChatDisplay();
+                    enableChat();
+
+                    // Highlight selected template
+                    document.querySelectorAll('.template-card').forEach(card => {
+                        card.classList.remove('active');
+                    });
+                    event.target.closest('.template-card').classList.add('active');
+                } else {
+                    alert('載入病患失敗：' + data.error);
+                }
+            } catch (error) {
+                alert('載入病患時發生錯誤：' + error.message);
+            }
+        }
+
+        function updateCurrentPatientDisplay() {
+            document.getElementById('currentPatient').style.display = 'block';
+            document.getElementById('patientName').textContent = currentPatient.patient_name;
+            document.getElementById('patientAge').textContent = currentPatient.patient_age;
+            document.getElementById('patientGender').textContent = currentPatient.patient_gender;
+            document.getElementById('patientOperation').textContent = currentPatient.operation;
+            document.getElementById('patientCFS').textContent = currentPatient.cfs_score;
+        }
+
+        function enableChat() {
+            document.getElementById('messageInput').disabled = false;
+            document.getElementById('sendButton').disabled = false;
+        }
+
+        function disableChat() {
+            document.getElementById('messageInput').disabled = true;
+            document.getElementById('sendButton').disabled = true;
+        }
+
+        function clearChatDisplay() {
+            const chatMessages = document.getElementById('chatMessages');
+            chatMessages.innerHTML = '';
+        }
+
+        async function sendMessage(event) {
+            event.preventDefault();
+
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+
+            if (!message) return;
+
+            // Display user message
+            addMessage('user', message);
+            input.value = '';
+
+            // Show loading
+            document.getElementById('loadingIndicator').classList.add('active');
+            disableChat();
+
+            try {
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ message: message })
+                });
+
+                const data = await response.json();
+                console.log('Received data from server:', data);
+                console.log('Response text:', data.response);
+                console.log('Response type:', typeof data.response);
+                console.log('Response length:', data.response ? data.response.length : 0);
+
+                if (data.success) {
+                    console.log('Adding bot message with response:', data.response);
+                    addMessage('bot', data.response, {
+                        system_prompt: data.system_prompt,
+                        user_prompt: data.user_prompt
+                    });
+                } else {
+                    console.error('Error from server:', data.error);
+                    addMessage('bot', '錯誤：' + data.error);
+                }
+            } catch (error) {
+                addMessage('bot', '發生錯誤：' + error.message);
+            } finally {
+                document.getElementById('loadingIndicator').classList.remove('active');
+                enableChat();
+                input.focus();
+            }
+        }
+
+        function addMessage(role, text, metadata = null) {
+            console.log('addMessage called - role:', role, 'text length:', text ? text.length : 0);
+            console.log('addMessage text content:', text);
+
+            const chatMessages = document.getElementById('chatMessages');
+
+            // Remove empty state if exists
+            const emptyState = chatMessages.querySelector('.empty-state');
+            if (emptyState) {
+                emptyState.remove();
+            }
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${role}`;
+
+            // Create message container
+            const messageContainer = document.createElement('div');
+
+            // Create label
+            const label = document.createElement('div');
+            label.className = 'message-label';
+            label.textContent = role === 'user' ? '您' : 'AI 助理';
+
+            // Create bubble
+            const bubble = document.createElement('div');
+            bubble.className = 'message-bubble';
+            bubble.style.whiteSpace = 'pre-wrap';  // Preserve line breaks
+            bubble.textContent = text || '(無回應)';
+
+            console.log('Bubble textContent set to:', bubble.textContent);
+
+            messageContainer.appendChild(label);
+            messageContainer.appendChild(bubble);
+
+            // Add metadata for bot responses
+            if (role === 'bot' && metadata) {
+                const infoDiv = document.createElement('div');
+                infoDiv.className = 'response-info';
+
+                const modelLabel = document.createElement('div');
+                modelLabel.innerHTML = '<strong>模型：</strong>Azure OpenAI';
+                infoDiv.appendChild(modelLabel);
+
+                if (metadata.system_prompt) {
+                    const systemDetails = document.createElement('details');
+                    const systemSummary = document.createElement('summary');
+                    systemSummary.textContent = '查看 System Prompt';
+                    const systemPre = document.createElement('pre');
+                    systemPre.textContent = metadata.system_prompt;
+                    systemDetails.appendChild(systemSummary);
+                    systemDetails.appendChild(systemPre);
+                    infoDiv.appendChild(systemDetails);
+                }
+
+                if (metadata.user_prompt) {
+                    const userDetails = document.createElement('details');
+                    const userSummary = document.createElement('summary');
+                    userSummary.textContent = '查看 User Prompt';
+                    const userPre = document.createElement('pre');
+                    userPre.textContent = metadata.user_prompt;
+                    userDetails.appendChild(userSummary);
+                    userDetails.appendChild(userPre);
+                    infoDiv.appendChild(userDetails);
+                }
+
+                messageContainer.appendChild(infoDiv);
+            }
+
+            messageDiv.appendChild(messageContainer);
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        async function clearChat() {
+            if (!confirm('確定要清除對話記錄嗎？（不會清除選擇的病患）')) return;
+
+            try {
+                const response = await fetch('/clear_chat', {
+                    method: 'POST'
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    clearChatDisplay();
+                    document.querySelector('.chat-messages').innerHTML = '<div class="empty-state">對話已清除，可以開始新的對話</div>';
+                }
+            } catch (error) {
+                alert('清除對話時發生錯誤：' + error.message);
+            }
+        }
+
+        async function resetAll() {
+            if (!confirm('確定要重新開始嗎？將清除病患選擇和所有對話記錄。')) return;
+
+            try {
+                const response = await fetch('/reset', {
+                    method: 'POST'
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    location.reload();
+                }
+            } catch (error) {
+                alert('重置時發生錯誤：' + error.message);
+            }
+        }
+    </script>
+</body>
+</html>

@@ -22,6 +22,68 @@
         .pat-edit-btn:hover {
             color: #1a5632;
         }
+
+        /* Tablet font size improvements - ELDERLY-FRIENDLY */
+        @media (min-width: 768px) and (max-width: 1024px) {
+            body {
+                font-size: 22px;
+            }
+
+            /* Card headers - LARGER */
+            .text-lg {
+                font-size: 1.8rem !important;
+                font-weight: 600 !important;
+            }
+
+            /* Field labels - LARGER */
+            .font-medium, .text-gray-600 {
+                font-size: 1.4rem !important;
+            }
+
+            /* Field values - LARGER */
+            .text-gray-800, span:not(.font-medium) {
+                font-size: 1.5rem !important;
+            }
+
+            /* Input fields - LARGER */
+            input[type="text"] {
+                font-size: 1.4rem !important;
+                padding: 1rem !important;
+            }
+
+            /* Edit button icons - LARGER */
+            .pat-edit-btn svg {
+                width: 1.5rem !important;
+                height: 1.5rem !important;
+            }
+
+            /* Confirmation button - LARGER */
+            button[type="submit"] {
+                font-size: 1.6rem !important;
+                padding: 1.2rem 3rem !important;
+            }
+
+            /* Help text - LARGER */
+            .text-sm {
+                font-size: 1.3rem !important;
+            }
+
+            /* File info at top - LARGER */
+            .text-xs {
+                font-size: 1.1rem !important;
+            }
+
+            /* Section spacing */
+            .p-4 {
+                padding: 1.5rem !important;
+            }
+
+            /* Toggle button SVG - LARGER */
+            .toggle-btn svg {
+                width: 2rem !important;
+                height: 2rem !important;
+            }
+        }
     </style>
 </head>
 <body class="p-4 sm:p-6 lg:p-8">
