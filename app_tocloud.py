@@ -365,29 +365,54 @@ def format_response(response):
     try:
         # Normalize line endings and ensure proper spacing
         response = response.replace('\r\n', '\n').replace('\r', '\n')
-        
+
         # Clean up excessive newlines
         response = re.sub(r'\n\s*\n\s*\n', '\n\n', response)  # Replace 3+ newlines with 2
-        
+
         # Fix spacing after colons before actual lists
         response = re.sub(r'([：:])\s*\n\s*([*-]\s+\S)', r'\1\n\2', response)
-        
+
+        # Remove blank lines between list items (prevents extra spacing in bullet points)
+        response = re.sub(r'([-*]\s+[^\n]+)\n\s*\n([-*]\s+)', r'\1\n\2', response)
+
         # Convert markdown to HTML
         html = markdown(response)
-        
+
         # Clean HTML output
-        allowed_tags = ['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'strong', 'em', 
+        allowed_tags = ['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'strong', 'em',
                        'ul', 'ol', 'li', 'code', 'pre', 'blockquote', 'a', 'br']
         allowed_attributes = {'a': ['href', 'title']}
         html = bleach.clean(html, tags=allowed_tags, attributes=allowed_attributes)
-        
+
         # Clean up HTML spacing
         html = re.sub(r'>\s+<', '><', html)  # Remove whitespace between tags
         html = re.sub(r'<p>\s+', '<p>', html)  # Remove leading whitespace in paragraphs
         html = re.sub(r'\s+</p>', '</p>', html)  # Remove trailing whitespace in paragraphs
         html = re.sub(r'<li>\s+', '<li>', html)  # Remove leading whitespace in list items
         html = re.sub(r'\s+</li>', '</li>', html)  # Remove trailing whitespace in list items
-        
+
+        # Remove newlines between list tags to prevent <br> insertion by frontend
+        html = re.sub(r'</li>\s*\n\s*<li>', '</li><li>', html)  # Remove newlines between list items
+        html = re.sub(r'<ul>\s*\n\s*<li>', '<ul><li>', html)  # Remove newline after <ul>
+        html = re.sub(r'</li>\s*\n\s*</ul>', '</li></ul>', html)  # Remove newline before </ul>
+        html = re.sub(r'<ol>\s*\n\s*<li>', '<ol><li>', html)  # Remove newline after <ol>
+        html = re.sub(r'</li>\s*\n\s*</ol>', '</li></ol>', html)  # Remove newline before </ol>
+
+        # Remove <p> tags inside <li> elements (prevents extra spacing in list items)
+        # This is the main cause of extra spacing - markdown package wraps list content in <p> tags
+        html = re.sub(r'<li>\s*<p>(.*?)</p>\s*</li>', r'<li>\1</li>', html, flags=re.DOTALL)
+
+        # Also handle cases where <p> is nested in <li> with other content
+        html = re.sub(r'<li><p>', '<li>', html)
+        html = re.sub(r'</p></li>', '</li>', html)
+
+        # DEBUG: Log the final HTML output
+        logger.info(f"=== FINAL HTML OUTPUT ===")
+        logger.info(f"HTML length: {len(html)}")
+        logger.info(f"HTML content:\n{html}")
+        logger.info(f"HTML repr:\n{repr(html)}")
+        logger.info("=" * 50)
+
         return html
     except Exception as e:
         logger.error(f"Error formatting response: {str(e)}", exc_info=True)

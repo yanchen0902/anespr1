@@ -524,17 +524,27 @@ document.getElementById('user-input').addEventListener('keypress', function(e) {
 function addMessageToChat(role, message) {
     const chatMessages = document.getElementById('chat-messages');
     if (!chatMessages) return;
-    
+
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${role}-message`;
-    messageDiv.innerHTML = message.replace(/\n/g, '<br>');
-    
+
+    // Check if message contains HTML tags (from backend markdown conversion)
+    const hasHTMLTags = /<[^>]+>/.test(message);
+
+    if (hasHTMLTags) {
+        // Message is already HTML formatted - use it directly without converting \n to <br>
+        messageDiv.innerHTML = message;
+    } else {
+        // Plain text message - convert newlines to <br> for proper display
+        messageDiv.innerHTML = message.replace(/\n/g, '<br>');
+    }
+
     // Add touch event for message actions (if needed)
     messageDiv.addEventListener('touchstart', function(e) {
         // Prevent text selection on long press
         e.preventDefault();
     }, { passive: false });
-    
+
     chatMessages.appendChild(messageDiv);
     scrollToBottom();
 }
